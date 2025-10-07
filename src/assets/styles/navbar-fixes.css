@@ -1,0 +1,466 @@
+/* Modern navbar theme: dark-navy header, orange accent, clean spacing */
+
+:root {
+  /* Fallbacks if variables not present in App.css */
+  --pp-dark: var(--dark-navy, #1a2030);
+  --pp-accent: var(--main-color, #fd7e14);
+  --pp-accent-dark: var(--main-color-dark, #e26400);
+  --pp-muted: #6c757d;
+  --pp-border: var(--border-color, #dee2e6);
+}
+
+.navbar-wrapper {
+  position: relative;
+  z-index: 1100;
+}
+
+/* Remove underlines globally for navbar links and dropdown toggles */
+.main-nav-link,
+.mobile-nav .mobile-nav-link,
+.categories-toggle,
+.nav-icon-link,
+.language-dropdown,
+.currency-dropdown,
+.dropdown-toggle {
+  text-decoration: none !important;
+}
+
+/* Also ensure no underlines on hover/active/focus */
+.main-nav-link:hover,
+.main-nav-link:active,
+.mobile-nav .mobile-nav-link:hover,
+.mobile-nav .mobile-nav-link:active,
+.categories-toggle:hover,
+.dropdown-toggle:hover,
+.language-dropdown:hover,
+.currency-dropdown:hover {
+  text-decoration: none !important;
+}
+
+/* Main navbar (logo, search, icons) - updated to match screenshots */
+.main-navbar {
+  background: #184ea6; /* royal blue */
+  color: #fff;
+  padding: 0.5rem 0;
+}
+
+.main-navbar .brand-logo { height: 46px; }
+
+/* make the search box prominent and centered */
+.search-container { flex: 1 1 55%; display:flex; justify-content:center; }
+.navbar-search-form { width: 70%; max-width: 620px; }
+.navbar-search-input { background: #fff; color: #1a2030; border: 1px solid rgba(0,0,0,0.08); border-radius: 24px 0 0 24px !important; }
+.navbar-search-input::placeholder { color: #6c757d; }
+.navbar-search-button { 
+  background: var(--pp-accent); 
+  border-color: var(--pp-accent); 
+  color:#fff; 
+  border-radius: 0 24px 24px 0 !important; 
+}
+.navbar-search-button .bi-search { 
+  color: #ffffff !important; 
+}
+
+/* align logo left, icons right */
+.logo-container { display:flex; align-items:center; }
+.nav-icons { display:flex; gap:12px; align-items:center; }
+.nav-icon-link { color:#fff; }
+/* Make ALL icon glyphs white */
+.nav-icon-link .bi,
+.nav-icon-link i,
+.bi-cart3,
+.bi-heart,
+.bi-person,
+.bi-speedometer2,
+.bi-box-arrow-right,
+.bi-grid,
+.bi-chevron-down,
+.bi-arrow-right {
+  color: #ffffff !important;
+}
+
+/* Hover state for icons - orange on hover */
+.nav-icon-link:hover .bi,
+.nav-icon-link:hover i,
+.btn:hover .bi,
+button:hover .bi,
+a:hover .bi,
+a:hover i,
+.dropdown-toggle:hover .bi,
+.dropdown-toggle:hover i {
+  color: var(--pp-accent) !important;
+  transition: color 0.3s ease;
+}
+
+/* Link hover effect */
+.nav-icon-link:hover { color: var(--pp-accent) !important; }
+
+/* Categories strip: white horizontal bar with centered nav */
+.desktop-nav-container { 
+  background: #fff; 
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+.desktop-inner { 
+  max-width: 1200px; 
+  margin: 0 auto; 
+  padding: 12px 16px; 
+  display:flex; 
+  align-items:center; 
+  gap:16px; 
+}
+/* Categories dropdown takes the full width on mobile */
+@media (max-width: 991.98px) {
+  .categories-dropdown {
+    width: 100%;
+  }
+  
+  .categories-toggle {
+    width: 100%;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.1) !important;
+  }
+}
+
+/* Desktop categories toggle */
+@media (min-width: 992px) {
+  .categories-dropdown {
+    margin-right: auto;
+    min-width: 200px;
+  }
+}
+.main-menu { display:flex; gap:20px; margin-left:auto; }
+.main-nav-link { 
+  color: #1a2030 !important; 
+  font-weight:600; 
+  padding:6px 8px !important; 
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+/* Add orange underline for active links */
+.main-nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--pp-accent);
+  transform: scaleX(1);
+}
+
+/* Add hover effect with underline */
+.main-nav-link:hover::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--pp-accent);
+  transform: scaleX(1);
+  transition: transform 0.3s ease;
+}
+
+.main-nav-link.active, .main-nav-link:hover { 
+  color: var(--pp-accent) !important; 
+}
+
+/* Unified dropdown styling for consistency */
+.unified-dropdown .dropdown-menu,
+.dropdown-menu,
+.desktop-nav-container .dropdown-menu {
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  border: none;
+  padding: 8px 0;
+  margin-top: 0;
+  width: 220px;
+  background-color: white;
+  z-index: 1200;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Styling for category dropdown button */
+.categories-toggle {
+  background-color: white !important;
+  color: var(--pp-accent) !important;
+  font-weight: 500;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.categories-toggle:hover,
+.categories-toggle:active,
+.categories-toggle:focus {
+  color: var(--pp-accent-dark) !important;
+  background-color: white !important;
+  box-shadow: none !important;
+}
+
+.categories-toggle .bi,
+.categories-toggle i {
+  color: var(--pp-accent) !important;
+}
+
+.categories-toggle:hover .bi,
+.categories-toggle:hover i {
+  color: var(--pp-accent-dark) !important;
+}
+
+/* Show caret on dropdown toggle */
+.categories-toggle::after {
+  margin-left: auto;
+  vertical-align: middle;
+}
+
+/* Reset dropdown position to relative to avoid double dropdowns */
+.categories-dropdown {
+  position: relative;
+  margin-right: auto;
+}
+
+/* Consistent dropdown item styling */
+.dropdown-item {
+  color: #333 !important;
+  padding: 10px 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border-left: none !important;
+  white-space: normal;
+  text-decoration: none !important;
+}
+
+/* Hover effects for all dropdown items */
+.dropdown-item:hover,
+.desktop-nav-container .dropdown-menu .dropdown-item:hover { 
+  color: var(--pp-accent) !important; 
+  border-left: none !important; 
+  background-color: rgba(253, 126, 20, 0.05);
+  text-decoration: none !important;
+}
+
+/* Active state for dropdown items */
+.dropdown-item.active {
+  background-color: rgba(253, 126, 20, 0.1) !important;
+  color: var(--pp-accent) !important;
+  font-weight: 600;
+}
+
+/* Remove all left borders and underlines from dropdown items */
+.dropdown-item, .dropdown-item:hover, .dropdown-item:active, .dropdown-item.active {
+  border-left: none !important;
+  padding-left: 1rem !important;
+  transform: none !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  padding: 10px 16px;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(253, 126, 20, 0.05);
+  color: var(--pp-accent) !important;
+}
+
+/* Specific rule to remove underlines from category dropdown items */
+.dropdown-menu .dropdown-item {
+  text-decoration: none !important;
+}
+
+/* Make sure text links inside dropdown items don't have underlines */
+.dropdown-item a,
+.dropdown-item:hover a,
+.dropdown-item *,
+.category-item,
+.category-item:hover,
+.dropdown-item,
+.dropdown-item:hover {
+  text-decoration: none !important;
+}
+
+/* Override Bootstrap's default underline behavior */
+a:hover {
+  text-decoration: none !important;
+}
+
+/* Mobile collapse panel */
+#main-navbar-nav { 
+  background:#fff; 
+  border-radius: 0 0 12px 12px;
+  border: none;
+  box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+}
+.mobile-nav .mobile-nav-link { 
+  color:#1a2030 !important; 
+  padding: 12px 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.mobile-nav .mobile-nav-link:hover, .mobile-nav .mobile-nav-link.active { 
+  color: var(--pp-accent) !important; 
+  background-color: rgba(253, 126, 20, 0.03);
+}
+
+/* Responsive rules */
+@media (max-width: 991px) {
+  .desktop-nav-container { display:none; }
+  .search-container { order: 2; width:100%; padding:0 12px; }
+  .navbar-search-form { width:100%; }
+  .logo-container { order: 1; }
+  .nav-icons { order: 3; }
+  #main-navbar-nav { position: absolute; top:100%; left:0; right:0; z-index:1200; box-shadow:0 12px 30px rgba(0,0,0,0.12); max-height:70vh; overflow:auto; }
+}
+
+@media (min-width: 992px) {
+  #main-navbar-nav { display:none !important; }
+  .search-container { order: 0; }
+}
+
+/* Top banner */
+.black-friday-banner { 
+  background: linear-gradient(90deg, #0f1730, #1a2c4e); 
+  color:#fff; 
+  padding:8px 0; 
+}
+.banner-discount { 
+  color:#fff; 
+  font-weight:700; 
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+.shop-now-btn {
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.shop-now-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Additional styling for social icons and search */
+html body .shop-now-icon,
+.black-friday-banner .shop-now-btn .shop-now-icon,
+button.shop-now-btn .shop-now-icon {
+  color: #ffffff !important;
+  transition: color 0.3s ease !important;
+}
+
+.shop-now-btn:hover .shop-now-icon,
+.shop-now-btn:focus .shop-now-icon,
+.shop-now-btn:active .shop-now-icon {
+  color: #fd7e14 !important; /* Hardcoded orange on hover */
+}
+
+/* Make search button icon more visible */
+.navbar-search-button {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--pp-accent) !important;
+  border-color: var(--pp-accent) !important;
+}
+
+.navbar-search-button:hover {
+  background-color: var(--pp-accent-dark) !important;
+  border-color: var(--pp-accent-dark) !important;
+}
+
+.navbar-search-button:hover .bi-search {
+  transform: scale(1.1);
+  color: #ffffff !important;
+}
+
+/* Social media icons - white by default, orange on hover */
+.social-icons .bi,
+.bi-facebook,
+.bi-twitter,
+.bi-instagram,
+.bi-youtube {
+  color: #ffffff !important;
+  transition: color 0.3s ease;
+}
+
+.social-icons a:hover .bi,
+.social-icons a:hover .bi-facebook,
+.social-icons a:hover .bi-twitter,
+.social-icons a:hover .bi-instagram,
+.social-icons a:hover .bi-youtube {
+  color: var(--pp-accent) !important;
+}
+
+/* Topbar below banner (thin blue strip) */
+.topbar { background: #285fb2; color:#fff; padding:6px 0; }
+.language-dropdown, .currency-dropdown { color:#fff !important; }
+
+/* Make language and currency dropdown icons change to orange on hover */
+.language-dropdown:hover .bi,
+.language-dropdown:hover i,
+.currency-dropdown:hover .bi,
+.currency-dropdown:hover i {
+  color: var(--pp-accent) !important;
+}
+
+/* Remove default dropdown arrow */
+.no-caret::after {
+  display: none !important;
+}
+
+/* Enhanced search button styling - orange background */
+.search-btn-dark {
+  background-color: var(--pp-accent) !important;
+  border-color: var(--pp-accent) !important;
+  color: white !important;
+}
+
+.search-btn-dark:hover,
+.search-btn-dark:active,
+.search-btn-dark:focus {
+  background-color: var(--pp-accent-dark) !important;
+  border-color: var(--pp-accent-dark) !important;
+  color: white !important;
+}
+
+.search-btn-dark .bi-search {
+  color: white !important;
+}
+
+/* Small polish */
+.navbar-search-button:hover { opacity:0.95; }
+
+/* Custom shop button to ensure hover works on all screen sizes */
+.shop-now-btn-custom:hover .shop-now-icon {
+  color: #fd7e14 !important;
+}
+
+/* Extra-specific selector to force orange color on hover for all screen sizes */
+html body .black-friday-banner .shop-now-btn:hover .shop-now-icon,
+html body .black-friday-banner .shop-now-btn:focus .shop-now-icon,
+html body .black-friday-banner .shop-now-btn:active .shop-now-icon,
+html body button.shop-now-btn:hover .bi-arrow-right.shop-now-icon,
+html body button.shop-now-btn:hover i.shop-now-icon,
+.shop-now-btn:hover .shop-now-icon {
+  color: #fd7e14 !important; /* Hardcoded orange to avoid variable issues */
+}
+
+/* Global rule to ensure all icons turn orange on hover */
+.navbar-wrapper a:hover .bi,
+.navbar-wrapper a:hover i,
+.navbar-wrapper .dropdown-toggle:hover .bi,
+.navbar-wrapper .nav-icon-link:hover .bi,
+.navbar-wrapper .btn:hover .bi,
+.navbar-wrapper button:hover .bi {
+  color: var(--pp-accent) !important;
+}
+
