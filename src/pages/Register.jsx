@@ -15,7 +15,7 @@ function Register() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   
-  const handleInputChange = (e) => {
+  const handleInputChange = (e) => {xz
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,

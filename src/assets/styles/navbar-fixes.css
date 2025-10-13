@@ -8,6 +8,17 @@
   --pp-muted: #6c757d;
   --pp-border: var(--border-color, #dee2e6);
 }
+.footer-container a {
+  color: #6c757d; /* normal link color */
+  text-decoration: none;
+  transition: color 0.5s ease-in-out;
+}
+
+.footer-container a:hover {
+  color: var(--pp-accent); /* your orange accent on hover */
+  text-decoration: none;
+  transition: color 0.5s ease-in-out;
+}
 
 .navbar-wrapper {
   position: relative;
@@ -39,7 +50,7 @@
 
 /* Main navbar (logo, search, icons) - updated to match screenshots */
 .main-navbar {
-  background: #184ea6; /* royal blue */
+  background: #026821; /* royal blue */
   color: #fff;
   padding: 0.5rem 0;
 }
@@ -80,6 +91,7 @@
 }
 
 /* Hover state for icons - orange on hover */
+
 .nav-icon-link:hover .bi,
 .nav-icon-link:hover i,
 .btn:hover .bi,
@@ -248,7 +260,7 @@ a:hover i,
 .desktop-nav-container .dropdown-menu .dropdown-item:hover { 
   color: var(--pp-accent) !important; 
   border-left: none !important; 
-  background-color: rgba(253, 126, 20, 0.05);
+  background-color: rgba(186, 111, 50, 0.05);
   text-decoration: none !important;
 }
 
@@ -332,7 +344,7 @@ a:hover {
 
 /* Top banner */
 .black-friday-banner { 
-  background: linear-gradient(90deg, #0f1730, #1a2c4e); 
+  background: linear-gradient(90deg, #0f1730, #106e1d); 
   color:#fff; 
   padding:8px 0; 
 }
@@ -347,7 +359,7 @@ a:hover {
 }
 .shop-now-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Additional styling for social icons and search */
@@ -401,7 +413,7 @@ button.shop-now-btn .shop-now-icon {
 }
 
 /* Topbar below banner (thin blue strip) */
-.topbar { background: #285fb2; color:#fff; padding:6px 0; }
+.topbar { background: #056f5c; color:#fff; padding:6px 0; }
 .language-dropdown, .currency-dropdown { color:#fff !important; }
 
 /* Make language and currency dropdown icons change to orange on hover */
