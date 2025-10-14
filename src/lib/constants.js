@@ -19,6 +19,7 @@ export const ROUTES = {
   LOGIN: '/login',
   REGISTER: '/register',
   ABOUT: '/about',
+  CONTACT: '/contact',
   ADMIN: '/admin',
   PRODUCT_DETAILS: '/product',
   ORDER_CONFIRMATION: '/order-confirmation'

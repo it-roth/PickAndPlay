@@ -105,7 +105,7 @@ function Home() {
       </section>
 
       {/* Categories Section */}
-      <section className="categories-section py-10">
+      <section className="categories-section mt-5 pt-5">
         <Container>
           <div className="section-header text-center mb-5">
             <h2 className="section-title">Guitar Categories</h2>

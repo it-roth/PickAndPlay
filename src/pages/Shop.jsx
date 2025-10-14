@@ -175,7 +175,7 @@ function Shop() {
   };
 
   return (
-    <Container className="py-6 shop-page-container" style={{ paddingTop: '100px' }}>
+    <Container className="mt-5 pt-5">
       <div className="mb-4">
         <h1>{getCategoryTitle()}</h1>
         {categoryName && (

@@ -1,5 +1,5 @@
 
-import apiDefault, { authService, productService, orderService, userService } from '../lib/api';
+import apiDefault, { authService, productService, orderService, userService, contactService } from '../lib/api';
 
-export { authService, productService, orderService, userService };
+export { authService, productService, orderService, userService, contactService };
 export default apiDefault;
