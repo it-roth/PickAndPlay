@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { productService, orderService, userService } from '../../services/api';
+import { productService, orderService, userService } from '../../lib/api';
 
 function Dashboard() {
   const [stats, setStats] = useState({

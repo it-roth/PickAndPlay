@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Carousel, Card, Button } from 'react-bootstrap';
+
 import { Link } from 'react-router-dom';
-import { productService } from '../services/api';
+
 import ProductCard from '../components/ProductCard';
+import { productService } from '../lib/api';
+import '../assets/styles/Home.css';
 
 function Home() {
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -10,16 +13,26 @@ function Home() {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // In a real app, you might have endpoints for featured and new products
-    // For now, we'll just use the general products endpoint
     const fetchProducts = async () => {
       try {
         const response = await productService.getAllProducts();
         const products = response.data;
         
-        // For demo purposes, let's split the products into featured and new
-        setFeaturedProducts(products.slice(0, 4));
-        setNewArrivals(products.slice(4, 8));
+  // For Featured: pick up to one product per category in the desired order
+  const desiredCategories = ['Acoustic', 'Electric', 'Classical', 'Bass'];
+  const featured = [];
+  desiredCategories.forEach((cat) => {
+    const found = products.find(p => {
+      if (!p || !p.category) return false;
+      return String(p.category).toLowerCase() === cat.toLowerCase();
+    });
+    if (found) featured.push(found);
+  });
+  // Fallback: if none found for a category we simply skip it (keeps featured list <= 4)
+  setFeaturedProducts(featured);
+  // Get the last 8 products and display most recent first
+  const lastEight = products.slice(-8) || [];
+  setNewArrivals(lastEight.slice().reverse());
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching products:', error);
@@ -53,114 +66,157 @@ function Home() {
   ];
 
   return (
-    <Container fluid className="p-0 home-container">
-      {/* Hero Carousel */}
-      <Carousel fade className="hero-carousel" indicators={false} controls={true} interval={5000}>
-        {carouselItems.map((item, index) => (
-          <Carousel.Item key={index}>
-            <img
-              className="d-block w-100 carousel-img"
-              src={item.image}
-              alt={item.title}
-              style={{ height: '550px', objectFit: 'cover', objectPosition: 'center' }}
-            />
-            <Carousel.Caption>
-              <h1>{item.title}</h1>
-              <p>{item.description}</p>
-              <Button as={Link} to={item.link} variant="primary" size="lg" className="shop-now-btn">
-                Shop Now
-              </Button>
-            </Carousel.Caption>
-          </Carousel.Item>
-        ))}
-      </Carousel>
-
-      {/* Featured Categories */}
-      <Container className="py-5">
-        <h2 className="text-center mb-4">Guitar Categories</h2>
-        <Row>
-          {['Acoustic', 'Electric', 'Classical', 'Bass'].map((category, index) => (
-            <Col md={3} sm={6} key={index} className="mb-4">
-              <Card className="text-center h-100">
-                <Card.Body>
-                  <Card.Title>{category} Guitars</Card.Title>
+    <div className="modern-home">
+      {/* Hero Section with Gradient Overlay */}
+      <section className="hero-section position-relative">
+        <Carousel fade className="hero-carousel" indicators={true} controls={true} interval={6000}>
+          {carouselItems.map((item, index) => (
+            <Carousel.Item key={index}>
+              <div className="hero-image-container">
+                <img
+                  className="d-block w-100 hero-image"
+                  src={item.image}
+                  alt={item.title}
+                  style={{ 
+                    height: '100vh', 
+                    objectFit: 'cover', 
+                    objectPosition: 'center'
+                  }}
+                />
+              </div>
+              <Carousel.Caption className="hero-caption">
+                <div className="hero-content">
+                  <h1 className={`hero-title ${item.title === 'Special Offers' ? 'hero-title--special' : ''}`}>{item.title}</h1>
+                  <p className={`hero-description ${item.title === 'Special Offers' ? 'hero-description--special' : ''}`}>{item.description}</p>
                   <Button 
                     as={Link} 
-                    to={`/categories/${category.toLowerCase()}`}
-                    variant="outline-primary"
+                    to={item.link} 
+                    className={`hero-cta-btn ${item.title === 'Special Offers' ? 'hero-cta-btn--special' : ''}`}
+                    size="lg"
                   >
-                    Browse {category}
+                    <i className="fas fa-guitar me-2"></i>
+                    Shop Now
                   </Button>
-                </Card.Body>
-              </Card>
-            </Col>
+                </div>
+              </Carousel.Caption>
+            </Carousel.Item>
           ))}
-        </Row>
-      </Container>
+        </Carousel>
+      </section>
 
-      {/* Featured Products */}
-      <Container className="py-3 bg-light">
-        <h2 className="text-center mb-4">Featured Products</h2>
-        {isLoading ? (
-          <div className="text-center py-5">Loading products...</div>
-        ) : (
-          <Row>
-            {featuredProducts.length > 0 ? (
-              featuredProducts.map((product) => (
-                <Col md={3} sm={6} key={product.id} className="mb-4">
-                  <ProductCard product={product} />
-                </Col>
-              ))
-            ) : (
-              <div className="text-center py-3">
-                <p>No featured products available at the moment.</p>
-              </div>
-            )}
+      {/* Categories Section */}
+      <section className="categories-section py-10">
+        <Container>
+          <div className="section-header text-center mb-5">
+            <h2 className="section-title">Guitar Categories</h2>
+            <p className="section-subtitle">Discover your perfect instrument</p>
+            <div className="section-divider"></div>
+          </div>
+          <Row className="g-4">
+            {['Acoustic', 'Electric', 'Classical', 'Bass'].map((category, index) => (
+              <Col lg={3} md={6} key={index}>
+                <Card className="category-card h-100 border-0 shadow-sm">
+                  <Card.Body className="text-center p-4">
+                      <Card.Title className="category-title">{category} Guitars</Card.Title>
+                    <p className="category-description text-muted mb-4">
+                      {category === 'Acoustic' ? 'Rich, natural sound' : 
+                       category === 'Electric' ? 'Powerful & versatile' :
+                       category === 'Classical' ? 'Traditional elegance' : 'Deep, rhythmic tones'}
+                    </p>
+                    <Button 
+                      as={Link} 
+                      to={`/categories/${category.toLowerCase()}`} 
+                      className="category-btn"
+                    >
+                      Browse {category}
+                      <i className="fas fa-arrow-right ms-2"></i>
+                    </Button>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
           </Row>
-        )}
-        <div className="text-center mt-3">
-          <Button as={Link} to="/shop" variant="primary">View All Products</Button>
-        </div>
-      </Container>
+        </Container>
+      </section>
 
-      {/* New Arrivals */}
-      <Container className="py-5">
-        <h2 className="text-center mb-4">New Arrivals</h2>
-        {isLoading ? (
-          <div className="text-center py-5">Loading products...</div>
-        ) : (
-          <Row>
-            {newArrivals.length > 0 ? (
-              newArrivals.map((product) => (
-                <Col md={3} sm={6} key={product.id} className="mb-4">
-                  <ProductCard product={product} />
-                </Col>
-              ))
-            ) : (
-              <div className="text-center py-3">
-                <p>No new arrivals available at the moment.</p>
+      {/* Featured Products Section */}
+      <section className="featured-section py-5 bg-gradient">
+        <Container>
+          <div className="section-header text-center mb-5">
+            <h2 className="section-title">Featured Products</h2>
+            <p className="section-subtitle">Handpicked instruments for music lovers</p>
+            <div className="section-divider"></div>
+          </div>
+          {isLoading ? (
+            <div className="loading-container text-center py-5">
+              <div className="spinner-border text-light" role="status">
+                <span className="visually-hidden">Loading...</span>
               </div>
-            )}
-          </Row>
-        )}
-      </Container>
+              <p className="text-white mt-3">Loading amazing products...</p>
+            </div>
+          ) : (
+            <>
+              <Row className="g-4">
+                {featuredProducts.length > 0 ? (
+                  featuredProducts.map((product, index) => (
+                    <Col lg={3} md={6} key={product.id} className="mb-4" style={{animationDelay: `${index * 0.1}s`}}>
+                      <div className="product-card-wrapper">
+                        <ProductCard product={product} />
+                      </div>
+                    </Col>
+                  ))
+                ) : (
+                  <Col xs={12}>
+                    <div className="no-products text-center py-5">
+                      <i className="fas fa-guitar fa-3x text-white-50 mb-3"></i>
+                      <p className="text-white">No featured products available at the moment.</p>
+                    </div>
+                  </Col>
+                )}
+              </Row>
+            </>
+          )}
+        </Container>
+      </section>
 
-      {/* Brand Highlight */}
-      <Container className="py-5 text-center bg-light">
-        <h2 className="mb-4">Top Brands</h2>
-        <Row className="justify-content-center">
-          {['Fender', 'Gibson', 'Ibanez', 'Martin', 'Taylor'].map((brand, index) => (
-            <Col key={index} xs={6} md={2} className="mb-4">
-              <Card className="border-0 bg-transparent">
-                <Card.Body>
-                  <h5>{brand}</h5>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      </Container>
-    </Container>
+      {/* New Arrivals Section */}
+      <section className="new-arrivals-section py-5">
+        <Container>
+          <div className="section-header text-center mb-5">
+            <h2 className="section-title">New Arrivals</h2>
+            <p className="section-subtitle">Fresh additions to our collection</p>
+            <div className="section-divider"></div>
+          </div>
+          {isLoading ? (
+            <div className="loading-container text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <p className="text-muted mt-3">Discovering new instruments...</p>
+            </div>
+          ) : (
+            <Row className="g-4">
+              {newArrivals.length > 0 ? (
+                newArrivals.map((product, index) => (
+                  <Col lg={3} md={6} key={product.id} className="mb-4" style={{animationDelay: `${index * 0.1}s`}}>
+                    <div className="product-card-wrapper">
+                      <ProductCard product={product} />
+                    </div>
+                  </Col>
+                ))
+              ) : (
+                <Col xs={12}>
+                  <div className="no-products text-center py-5">
+                    <i className="fas fa-plus-circle fa-3x text-muted mb-3"></i>
+                    <p className="text-muted">No new arrivals available at the moment.</p>
+                  </div>
+                </Col>
+              )}
+            </Row>
+          )}
+        </Container>
+      </section>
+    </div>
   );
 }
 

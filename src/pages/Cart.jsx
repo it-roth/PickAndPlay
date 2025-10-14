@@ -1,9 +1,41 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Image, Form, ListGroup, Card } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { orderService } from '../services/api';
+import { orderService } from '../lib/api';
+import { getImageUrl } from '../lib/utils';
 
 function Cart() {
+  // Small image component to handle load/error gracefully
+  function ImageWithFallback({ src, alt, ...props }) {
+    const [errored, setErrored] = useState(false);
+    if (!src || errored) {
+      return (
+        <div
+          className="no-image-placeholder d-flex align-items-center justify-content-center"
+          style={{
+            width: '100px',
+            height: '100px',
+            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+            borderRadius: '4px'
+          }}
+        >
+          <i className="bi bi-image text-muted"></i>
+        </div>
+      );
+    }
+
+    return (
+      <Image
+        src={src}
+        alt={alt}
+        fluid
+        thumbnail
+        loading="lazy"
+        onError={() => setErrored(true)}
+        {...props}
+      />
+    );
+  }
   const [cartItems, setCartItems] = useState([]);
   const [subtotal, setSubtotal] = useState(0);
   const [shipping, setShipping] = useState(0);
@@ -22,64 +54,64 @@ function Cart() {
     cvv: '',
   });
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     // Load cart from localStorage
     const loadCart = () => {
       const cart = JSON.parse(localStorage.getItem('cart')) || [];
       setCartItems(cart);
-      
+
       // Calculate subtotal
       const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       setSubtotal(total);
-      
+
       // Set shipping cost (simplified logic)
       setShipping(total > 100 ? 0 : 10);
     };
-    
+
     loadCart();
-    
+
     // Listen for cart updates
     window.addEventListener('cartUpdated', loadCart);
     return () => {
       window.removeEventListener('cartUpdated', loadCart);
     };
   }, []);
-  
+
   const updateQuantity = (id, newQuantity) => {
     if (newQuantity < 1) return;
-    
-    const updatedCart = cartItems.map(item => 
+
+    const updatedCart = cartItems.map(item =>
       item.id === id ? { ...item, quantity: newQuantity } : item
     );
-    
+
     setCartItems(updatedCart);
     localStorage.setItem('cart', JSON.stringify(updatedCart));
-    
+
     // Update subtotal
     const total = updatedCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     setSubtotal(total);
-    
+
     // Update shipping cost
     setShipping(total > 100 ? 0 : 10);
   };
-  
+
   const removeItem = (id) => {
     const updatedCart = cartItems.filter(item => item.id !== id);
     setCartItems(updatedCart);
     localStorage.setItem('cart', JSON.stringify(updatedCart));
-    
+
     // Update subtotal
     const total = updatedCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     setSubtotal(total);
-    
+
     // Update shipping cost
     setShipping(total > 100 ? 0 : 10);
-    
+
     // Trigger event to update cart count in navbar
     window.dispatchEvent(new CustomEvent('cartUpdated'));
   };
-  
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setCheckoutForm(prev => ({
@@ -87,32 +119,29 @@ function Cart() {
       [name]: value
     }));
   };
-  
+
   const handleCheckout = async (e) => {
     e.preventDefault();
-    
+
     // In a real app, you would validate the form and process payment
-    
+
     try {
       // Submit order to backend
       const orderData = {
-        items: cartItems,
-        shippingAddress: {
-          firstName: checkoutForm.firstName,
-          lastName: checkoutForm.lastName,
-          address: checkoutForm.address,
-          city: checkoutForm.city,
-          state: checkoutForm.state,
-          zipCode: checkoutForm.zipCode
-        },
-        totalAmount: subtotal + shipping
+        customerName: `${checkoutForm.firstName} ${checkoutForm.lastName}`,
+        shippingAddress: `${checkoutForm.address}, ${checkoutForm.city}, ${checkoutForm.state} ${checkoutForm.zipCode}`,
+        totalAmount: subtotal + shipping,
+        items: cartItems.map(item => ({
+          productId: item.id,
+          quantity: item.quantity
+        }))
       };
-      
+
       await orderService.placeOrder(orderData);
-      
+
       // Clear cart
       localStorage.removeItem('cart');
-      
+
       // Redirect to order confirmation
       navigate('/order-confirmation');
     } catch (error) {
@@ -134,9 +163,9 @@ function Cart() {
   }
 
   return (
-    <Container className="py-4">
+    <Container className="py-6 shop-page-container" style={{ paddingTop: '100px' }}>
       <h1 className="mb-4">Your Cart</h1>
-      
+
       <Row>
         <Col lg={8}>
           {/* Cart items */}
@@ -149,12 +178,7 @@ function Cart() {
                 <ListGroup.Item key={item.id}>
                   <Row className="align-items-center">
                     <Col xs={3} md={2}>
-                      <Image 
-                        src={item.imageUrl || 'https://via.placeholder.com/100?text=Guitar'} 
-                        alt={item.name}
-                        fluid
-                        thumbnail
-                      />
+                      <ImageWithFallback src={getImageUrl(item.images)} alt={item.name} />
                     </Col>
                     <Col xs={9} md={4}>
                       <h5 className="mb-1">
@@ -167,16 +191,16 @@ function Cart() {
                     </Col>
                     <Col md={2}>
                       <div className="d-flex align-items-center">
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline-secondary"
                           onClick={() => updateQuantity(item.id, item.quantity - 1)}
                         >
                           -
                         </Button>
                         <span className="mx-2">{item.quantity}</span>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="outline-secondary"
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
                         >
@@ -189,8 +213,8 @@ function Cart() {
                         <span className="d-inline-block me-3">
                           ${(item.price * item.quantity).toFixed(2)}
                         </span>
-                        <Button 
-                          variant="link" 
+                        <Button
+                          variant="link"
                           className="text-danger p-0"
                           onClick={() => removeItem(item.id)}
                         >
@@ -203,7 +227,7 @@ function Cart() {
               ))}
             </ListGroup>
           </Card>
-          
+
           {/* Checkout form (visible only when checking out) */}
           {isCheckingOut && (
             <Card className="mb-4">
@@ -216,145 +240,145 @@ function Cart() {
                     <Col md={6} className="mb-3">
                       <Form.Group>
                         <Form.Label>First Name</Form.Label>
-                        <Form.Control 
-                          type="text" 
-                          name="firstName" 
+                        <Form.Control
+                          type="text"
+                          name="firstName"
                           value={checkoutForm.firstName}
                           onChange={handleInputChange}
-                          required 
+                          required
                         />
                       </Form.Group>
                     </Col>
                     <Col md={6} className="mb-3">
                       <Form.Group>
                         <Form.Label>Last Name</Form.Label>
-                        <Form.Control 
-                          type="text" 
-                          name="lastName" 
+                        <Form.Control
+                          type="text"
+                          name="lastName"
                           value={checkoutForm.lastName}
                           onChange={handleInputChange}
-                          required 
+                          required
                         />
                       </Form.Group>
                     </Col>
                   </Row>
-                  
+
                   <Form.Group className="mb-3">
                     <Form.Label>Email</Form.Label>
-                    <Form.Control 
-                      type="email" 
-                      name="email" 
+                    <Form.Control
+                      type="email"
+                      name="email"
                       value={checkoutForm.email}
                       onChange={handleInputChange}
-                      required 
+                      required
                     />
                   </Form.Group>
-                  
+
                   <Form.Group className="mb-3">
                     <Form.Label>Address</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      name="address" 
+                    <Form.Control
+                      type="text"
+                      name="address"
                       value={checkoutForm.address}
                       onChange={handleInputChange}
-                      required 
+                      required
                     />
                   </Form.Group>
-                  
+
                   <Row>
                     <Col md={4} className="mb-3">
                       <Form.Group>
                         <Form.Label>City</Form.Label>
-                        <Form.Control 
-                          type="text" 
-                          name="city" 
+                        <Form.Control
+                          type="text"
+                          name="city"
                           value={checkoutForm.city}
                           onChange={handleInputChange}
-                          required 
+                          required
                         />
                       </Form.Group>
                     </Col>
                     <Col md={4} className="mb-3">
                       <Form.Group>
                         <Form.Label>State</Form.Label>
-                        <Form.Control 
-                          type="text" 
-                          name="state" 
+                        <Form.Control
+                          type="text"
+                          name="state"
                           value={checkoutForm.state}
                           onChange={handleInputChange}
-                          required 
+                          required
                         />
                       </Form.Group>
                     </Col>
                     <Col md={4} className="mb-3">
                       <Form.Group>
                         <Form.Label>Zip Code</Form.Label>
-                        <Form.Control 
-                          type="text" 
-                          name="zipCode" 
+                        <Form.Control
+                          type="text"
+                          name="zipCode"
                           value={checkoutForm.zipCode}
                           onChange={handleInputChange}
-                          required 
+                          required
                         />
                       </Form.Group>
                     </Col>
                   </Row>
-                  
+
                   <hr className="my-4" />
-                  
+
                   <h5 className="mb-3">Payment Information</h5>
-                  
+
                   <Form.Group className="mb-3">
                     <Form.Label>Card Number</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      name="cardNumber" 
+                    <Form.Control
+                      type="text"
+                      name="cardNumber"
                       value={checkoutForm.cardNumber}
                       onChange={handleInputChange}
                       placeholder="XXXX XXXX XXXX XXXX"
-                      required 
+                      required
                     />
                   </Form.Group>
-                  
+
                   <Form.Group className="mb-3">
                     <Form.Label>Name on Card</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      name="cardName" 
+                    <Form.Control
+                      type="text"
+                      name="cardName"
                       value={checkoutForm.cardName}
                       onChange={handleInputChange}
-                      required 
+                      required
                     />
                   </Form.Group>
-                  
+
                   <Row>
                     <Col md={6} className="mb-3">
                       <Form.Group>
                         <Form.Label>Expiration Date</Form.Label>
-                        <Form.Control 
-                          type="text" 
-                          name="expDate" 
+                        <Form.Control
+                          type="text"
+                          name="expDate"
                           value={checkoutForm.expDate}
                           onChange={handleInputChange}
                           placeholder="MM/YY"
-                          required 
+                          required
                         />
                       </Form.Group>
                     </Col>
                     <Col md={6} className="mb-3">
                       <Form.Group>
                         <Form.Label>CVV</Form.Label>
-                        <Form.Control 
-                          type="text" 
-                          name="cvv" 
+                        <Form.Control
+                          type="text"
+                          name="cvv"
                           value={checkoutForm.cvv}
                           onChange={handleInputChange}
-                          required 
+                          required
                         />
                       </Form.Group>
                     </Col>
                   </Row>
-                  
+
                   <div className="d-grid">
                     <Button type="submit" variant="primary" size="lg">
                       Place Order
@@ -365,7 +389,7 @@ function Cart() {
             </Card>
           )}
         </Col>
-        
+
         {/* Order summary */}
         <Col lg={4}>
           <Card className="mb-4">
@@ -387,10 +411,10 @@ function Cart() {
                   <span>${(subtotal + shipping).toFixed(2)}</span>
                 </ListGroup.Item>
               </ListGroup>
-              
+
               <div className="d-grid gap-2 mt-3">
                 {isCheckingOut ? (
-                  <Button 
+                  <Button
                     variant="outline-secondary"
                     onClick={() => setIsCheckingOut(false)}
                   >
@@ -398,15 +422,15 @@ function Cart() {
                   </Button>
                 ) : (
                   <>
-                    <Button 
+                    <Button
                       variant="primary"
                       onClick={() => setIsCheckingOut(true)}
                     >
                       Proceed to Checkout
                     </Button>
-                    <Button 
+                    <Button
                       variant="outline-secondary"
-                      as={Link} 
+                      as={Link}
                       to="/shop"
                     >
                       Continue Shopping

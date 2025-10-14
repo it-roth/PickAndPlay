@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Container, Row, Col, Form, Button, Card, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { authService } from '../services/api';
+import { authService } from '../lib/api';
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -48,6 +48,20 @@ function Register() {
         localStorage.setItem('token', response.data.token);
         navigate('/');
       } else {
+        // If an admin is currently logged in, redirect them to the admin users list
+        try {
+          const stored = localStorage.getItem('userData');
+          if (stored) {
+            const currentUser = JSON.parse(stored);
+            if (currentUser?.role === 'ADMIN') {
+              navigate('/admin/users');
+              return;
+            }
+          }
+        } catch (e) {
+          // ignore parsing errors
+        }
+
         // Redirect to login if registration doesn't auto-login
         navigate('/login', { 
           state: { 
@@ -56,9 +70,9 @@ function Register() {
         });
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      import('../lib/logger').then(({ default: logger }) => logger.error('Registration error:', error));
       setError(
-        error.response?.data?.message || 
+        error.response?.data?.message ||
         'Registration failed. Please check your information and try again.'
       );
     } finally {
@@ -67,9 +81,7 @@ function Register() {
   };
 
   return (
-    <Container className="py-5">
-      <Row className="justify-content-center">
-        <Col md={8} lg={6}>
+    <Container className="auth-page">
           <Card>
             <Card.Header as="h4" className="text-center">Create an Account</Card.Header>
             <Card.Body>
@@ -162,8 +174,9 @@ function Register() {
               </div>
             </Card.Body>
           </Card>
-        </Col>
-      </Row>
+      <div className="text-center mt-3">
+        <Button className="back-home-button" variant="outline-primary" onClick={() => navigate('/')}>Back to Home</Button>
+      </div>
     </Container>
   );
 }

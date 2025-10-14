@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Container, Form, Button, Card, Row, Col, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { productService } from '../../services/api';
+import { productService } from '../../lib/api';
 
 function AddProduct() {
   const [productData, setProductData] = useState({
@@ -13,7 +13,7 @@ function AddProduct() {
     stockQuantity: '',
     description: '',
     shortDescription: '',
-    imageUrl: '',
+    images: null,
     specs: {
       bodyMaterial: '',
       neckMaterial: '',
@@ -31,7 +31,16 @@ function AddProduct() {
   const navigate = useNavigate();
   
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, files } = e.target;
+    
+    // Handle file uploads (images)
+    if (name === 'images' && files && files.length > 0) {
+      setProductData(prev => ({
+        ...prev,
+        [name]: files
+      }));
+      return;
+    }
     
     // Handle nested specs object
     if (name.includes('specs.')) {
@@ -224,16 +233,15 @@ function AddProduct() {
             </Row>
             
             <Form.Group className="mb-3">
-              <Form.Label>Image URL</Form.Label>
+              <Form.Label>Product Image</Form.Label>
               <Form.Control
-                type="url"
-                name="imageUrl"
-                value={productData.imageUrl}
+                type="file"
+                name="images"
+                accept="image/*"
                 onChange={handleInputChange}
-                placeholder="https://example.com/image.jpg"
               />
               <Form.Text className="text-muted">
-                Enter a valid URL for the product image.
+                Upload an image file for the product.
               </Form.Text>
             </Form.Group>
           </Card.Body>

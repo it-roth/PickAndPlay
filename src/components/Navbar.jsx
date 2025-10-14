@@ -1,34 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Navbar as BootstrapNavbar, Nav, Container, Button, Form, InputGroup, Dropdown } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { authService } from '../services/api';
+import { authService } from '../lib/api';
 import logoImage from '../assets/images/Logo.png';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../assets/styles/navbar-fixes.css';
 
 function Navbar() {
   const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [cartCount, setCartCount] = useState(0);
-  const [showCategoriesDropdown, setShowCategoriesDropdown] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Function to navigate to a category and close all menus
-  // Added event parameter and preventDefault to avoid double navigation
-  const handleCategorySelect = (path, e) => {
-    if (e) {
-      e.preventDefault(); // Prevent default link behavior
-      e.stopPropagation(); // Stop event bubbling
-    }
-    setShowCategoriesDropdown(false);
-    setExpanded(false);
-    // Prevent navigating to the same page
-    if (location.pathname !== path) {
-      navigate(path);
-    }
-  };
 
   // Check if the current page matches the given path
   const isActive = (path) => {
@@ -37,29 +20,40 @@ function Navbar() {
 
   useEffect(() => {
     // Get cart items count from localStorage
-    const cart = JSON.parse(localStorage.getItem('cart')) || [];
-    setCartCount(cart.length);
+    const updateCartCount = () => {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+      setCartCount(totalItems);
+    };
 
-    // Check if user is logged in
+    updateCartCount();
+
+    // Listen for cart updates
+    window.addEventListener('cartUpdated', updateCartCount);
+
+    // Check if user is logged in (customer only)
     const token = localStorage.getItem('token');
     if (token) {
       authService.getCurrentUser()
         .then(response => {
           setUser(response.data);
-          setIsAdmin(response.data.role === 'ADMIN');
         })
         .catch(() => {
           localStorage.removeItem('token');
+          localStorage.removeItem('userData');
           setUser(null);
-          setIsAdmin(false);
         });
     }
+
+    return () => {
+      window.removeEventListener('cartUpdated', updateCartCount);
+    };
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userData');
     setUser(null);
-    setIsAdmin(false);
     navigate('/');
   };
 
@@ -152,22 +146,13 @@ function Navbar() {
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </Link>
             
-            {/* Wishlist - hidden on mobile */}
-            <Link to="/wishlist" className="nav-icon-link d-none d-sm-flex">
-              <i className="bi bi-heart"></i>
-            </Link>
             
-            {/* User menu */}
+            {/* User menu - Customer only */}
             {user ? (
               <div className="user-menu d-flex">
                 <Link to="/profile" className="nav-icon-link">
                   <i className="bi bi-person-circle"></i>
                 </Link>
-                {isAdmin && (
-                  <Link to="/admin/dashboard" className="nav-icon-link d-none d-sm-flex">
-                    <i className="bi bi-speedometer2"></i>
-                  </Link>
-                )}
                 <Button variant="link" className="nav-icon-link p-0" onClick={handleLogout}>
                   <i className="bi bi-box-arrow-right"></i>
                 </Button>
@@ -215,86 +200,21 @@ function Navbar() {
               <Nav.Link as={Link} to="/contact" className={`mobile-nav-link ${isActive("/contact")}`} onClick={() => setExpanded(false)}>
                 Contact Us
               </Nav.Link>
-              
-              {/* Categories in mobile menu */}
-              <div className="mobile-categories">
-                <h6 className="mobile-nav-heading">Categories</h6>
-                <Nav.Link as="a" href="#" className={`mobile-nav-link nested-link ${isActive("/category/electric")}`} onClick={(e) => handleCategorySelect('/category/electric', e)}>
-                  Electric Guitars
-                </Nav.Link>
-                <Nav.Link as="a" href="#" className={`mobile-nav-link nested-link ${isActive("/category/acoustic")}`} onClick={(e) => handleCategorySelect('/category/acoustic', e)}>
-                  Acoustic Guitars
-                </Nav.Link>
-                <Nav.Link as="a" href="#" className={`mobile-nav-link nested-link ${isActive("/category/bass")}`} onClick={(e) => handleCategorySelect('/category/bass', e)}>
-                  Bass Guitars
-                </Nav.Link>
-                <Nav.Link as="a" href="#" className={`mobile-nav-link nested-link ${isActive("/category/accessories")}`} onClick={(e) => handleCategorySelect('/category/accessories', e)}>
-                  Accessories
-                </Nav.Link>
-              </div>
             </Nav>
           </BootstrapNavbar.Collapse>
         </Container>
       </BootstrapNavbar>
       
-      {/* Desktop Navigation & Categories */}
+      {/* Desktop Navigation */}
       <div className="desktop-nav-container d-none d-lg-block">
         <Container fluid>
-          <div className="d-flex justify-content-between align-items-center">
-            {/* Categories Dropdown */}
-            <div className="categories-dropdown">
-              <Dropdown 
-                show={showCategoriesDropdown} 
-                onToggle={(isOpen) => {
-                  // Only set state, don't trigger additional actions
-                  setShowCategoriesDropdown(isOpen);
-                }}
-                className="unified-dropdown"
-              >
-                <Dropdown.Toggle variant="light" id="categories-dropdown" className="categories-toggle rounded-0 px-3 py-2">
-                  <i className="bi bi-grid me-2"></i> Categories
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                  <Dropdown.Item 
-                    onClick={(e) => handleCategorySelect('/category/electric', e)} 
-                    className={isActive("/category/electric")}
-                    as="button"
-                  >
-                    Electric Guitars
-                  </Dropdown.Item>
-                  <Dropdown.Item 
-                    onClick={(e) => handleCategorySelect('/category/acoustic', e)} 
-                    className={isActive("/category/acoustic")}
-                    as="button"
-                  >
-                    Acoustic Guitars
-                  </Dropdown.Item>
-                  <Dropdown.Item 
-                    onClick={(e) => handleCategorySelect('/category/bass', e)} 
-                    className={isActive("/category/bass")}
-                    as="button"
-                  >
-                    Bass Guitars
-                  </Dropdown.Item>
-                  <Dropdown.Item 
-                    onClick={(e) => handleCategorySelect('/category/accessories', e)} 
-                    className={`category-item ${isActive("/category/accessories")}`}
-                    as="button"
-                  >
-                    Accessories
-                  </Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
-            </div>
-            
-            {/* Main Navigation */}
-            <Nav className="main-menu">
-              <Nav.Link as={Link} to="/" className={`main-nav-link ${isActive("/")}`}>HOME</Nav.Link>
-              <Nav.Link as={Link} to="/shop" className={`main-nav-link ${isActive("/shop")}`}>SHOP</Nav.Link>
-              <Nav.Link as={Link} to="/about" className={`main-nav-link ${isActive("/about")}`}>ABOUT US</Nav.Link>
-              <Nav.Link as={Link} to="/contact" className={`main-nav-link ${isActive("/contact")}`}>CONTACT US</Nav.Link>
-            </Nav>
-          </div>
+          {/* Main Navigation */}
+          <Nav className="main-menu">
+            <Nav.Link as={Link} to="/" className={`main-nav-link ${isActive("/")}`}>HOME</Nav.Link>
+            <Nav.Link as={Link} to="/shop" className={`main-nav-link ${isActive("/shop")}`}>SHOP</Nav.Link>
+            <Nav.Link as={Link} to="/about" className={`main-nav-link ${isActive("/about")}`}>ABOUT US</Nav.Link>
+            <Nav.Link as={Link} to="/contact" className={`main-nav-link ${isActive("/contact")}`}>CONTACT US</Nav.Link>
+          </Nav>
         </Container>
       </div>
     </div>

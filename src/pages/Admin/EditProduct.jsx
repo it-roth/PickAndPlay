@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Form, Button, Card, Row, Col, Alert } from 'react-bootstrap';
-import { productService } from '../../services/api';
+import { productService } from '../../lib/api';
+import { getImageUrl } from '../../lib/utils';
 
 function EditProduct() {
   const [productData, setProductData] = useState({
@@ -13,7 +14,8 @@ function EditProduct() {
     stockQuantity: '',
     description: '',
     shortDescription: '',
-    imageUrl: '',
+    images: null,
+    currentImage: '', // To show existing image
     specs: {
       bodyMaterial: '',
       neckMaterial: '',
@@ -41,6 +43,8 @@ function EditProduct() {
         setProductData({
           ...productData, // Use defaults for missing fields
           ...product, // Override with actual product data
+          currentImage: product.images, // Store current image path
+          images: null, // Reset file input
           specs: {
             ...productData.specs, // Default specs
             ...(product.specs || {}) // Override with actual specs if available
@@ -59,7 +63,16 @@ function EditProduct() {
   }, [id]);
   
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, files } = e.target;
+    
+    // Handle file uploads (images)
+    if (name === 'images' && files && files.length > 0) {
+      setProductData(prev => ({
+        ...prev,
+        [name]: files
+      }));
+      return;
+    }
     
     // Handle nested specs object
     if (name.includes('specs.')) {
@@ -236,19 +249,22 @@ function EditProduct() {
             </Row>
             
             <Form.Group className="mb-3">
-              <Form.Label>Image URL</Form.Label>
+              <Form.Label>Product Image</Form.Label>
               <Form.Control
-                type="url"
-                name="imageUrl"
-                value={productData.imageUrl}
+                type="file"
+                name="images"
+                accept="image/*"
                 onChange={handleInputChange}
-                placeholder="https://example.com/image.jpg"
               />
-              {productData.imageUrl && (
+              <Form.Text className="text-muted">
+                Upload a new image to replace the current one (optional).
+              </Form.Text>
+              {productData.currentImage && (
                 <div className="mt-2">
+                  <p className="mb-1">Current image:</p>
                   <img 
-                    src={productData.imageUrl} 
-                    alt="Product preview" 
+                    src={getImageUrl(productData.currentImage)} 
+                    alt="Current product image" 
                     style={{ maxHeight: '100px' }} 
                     className="img-thumbnail"
                   />

@@ -401,6 +401,107 @@ a, a:hover, a:focus, a:active, .dropdown-item, .dropdown-item:hover {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Auth page styles (Login / Register) */
+.auth-page {
+  background: transparent; /* removed gradient background per request */
+  min-height: calc(100vh - 40px);
+  display: flex;
+  align-items: flex-start; /* align to top */
+  justify-content: center; /* center horizontally */
+  padding: 2px 2px 2px 2px; /* reduce top padding so card sits higher */
+}
+
+.auth-page .card {
+  padding: 1rem;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 420px; /* wider form as requested */
+  margin: 0 auto;
+  background: transparent; /* don't add background color to the form container */
+  /* keep a subtle outline/shadow for separation */
+  box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.02);
+}
+
+.auth-page .card-header {
+  background: transparent;
+  border-bottom: none;
+  font-size: 1.6rem;
+  letter-spacing: 0.02em;
+}
+
+.auth-page .btn-outline-primary {
+  color: var(--main-color);
+  border-color: rgba(253,126,20,0.2);
+}
+
+.auth-page .btn-outline-primary:hover {
+  background-color: rgba(253,126,20,0.06);
+  border-color: var(--main-color);
+}
+
+.auth-page .back-home-button {
+  display: inline-block;
+  margin: 16px auto 0 auto;
+  padding: 0.65rem 1.1rem;
+  border-radius: 8px;
+  min-width: 160px;
+}
+
+.auth-page .form-control {
+  background: transparent; /* allow page gradient to show through */
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+.auth-page .card-body {
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.auth-page .d-grid {
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 576px) {
+  .auth-page {
+    align-items: flex-start;
+    padding-top: 20px;
+    min-height: auto;
+  }
+
+  .auth-page .card {
+    max-width: 92%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Small utility classes to avoid inline styles */
+.page-offset-100 {
+  padding-top: 100px !important;
+}
+.centered-image-wrapper {
+  max-height: 420px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gradient-price-text {
+  background: linear-gradient(135deg,#10b981,#059669);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+.inputgroup-width-120 { width: 120px; }
+.img-circle-40 { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.img-square-50 { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
+.img-preview-maxheight { max-height: 100px; }
+.text-lineheight-16 { line-height: 1.6; }
+
 /* Fix for Bootstrap dropdown positioning */
 .dropdown {
   position: relative !important;
@@ -880,8 +981,8 @@ a, a:hover, a:focus, a:active, .dropdown-item, .dropdown-item:hover {
 }
 
 .footer-bottom {
-  background-color: rgba(0, 0, 0, 0.2);
-  color: rgba(255, 255, 255, 0.7);
+  background-color: #ff7a00;
+  color: rgb(255, 255, 255);
 }
 
 .footer-logo {
@@ -905,7 +1006,11 @@ a, a:hover, a:focus, a:active, .dropdown-item, .dropdown-item:hover {
   bottom: 0;
   height: 2px;
   width: 30px;
-  background-color: var(--main-color);
+  background-color: #ff7a00; /* orange accent */
+}
+
+.footer-heading {
+  color: #ff7a00; /* make footer headings orange */
 }
 
 .footer-links {
