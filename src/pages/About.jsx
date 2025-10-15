@@ -1,7 +1,6 @@
 import React from 'react';
 import { Container, Row, Col, Card, Image } from 'react-bootstrap';
 import { StarFill, PeopleFill, MusicNoteBeamed, EnvelopeFill } from 'react-bootstrap-icons';
-// import './about.css';
 import guitarTeam1 from '../assets/images/team/team-member1.jpg';
 import guitarTeam2 from '../assets/images/team/team-member2.jpg';
 import guitarTeam3 from '../assets/images/team/team-member3.jpg';

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Container, Row, Col, Form, Button, Card, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { authService } from '../services/api';
+import { authService } from '../lib/api';
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -14,27 +14,32 @@ function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+<<<<<<< HEAD
   
   const handleInputChange = (e) => {xz
+=======
+
+  const handleInputChange = (e) => {
+>>>>>>> origin/main
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       const response = await authService.register({
         email: formData.email,
@@ -42,23 +47,37 @@ function Register() {
         firstName: formData.firstName,
         lastName: formData.lastName
       });
-      
+
       // If registration auto-logs in
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
         navigate('/');
       } else {
+        // If an admin is currently logged in, redirect them to the admin users list
+        try {
+          const stored = localStorage.getItem('userData');
+          if (stored) {
+            const currentUser = JSON.parse(stored);
+            if (currentUser?.role === 'ADMIN') {
+              navigate('/admin/users');
+              return;
+            }
+          }
+        } catch (e) {
+          // ignore parsing errors
+        }
+
         // Redirect to login if registration doesn't auto-login
-        navigate('/login', { 
-          state: { 
-            message: 'Registration successful! Please login with your new account.' 
+        navigate('/login', {
+          state: {
+            message: 'Registration successful! Please login with your new account.'
           }
         });
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      import('../lib/logger').then(({ default: logger }) => logger.error('Registration error:', error));
       setError(
-        error.response?.data?.message || 
+        error.response?.data?.message ||
         'Registration failed. Please check your information and try again.'
       );
     } finally {
@@ -67,103 +86,103 @@ function Register() {
   };
 
   return (
-    <Container className="py-5">
-      <Row className="justify-content-center">
-        <Col md={8} lg={6}>
-          <Card>
-            <Card.Header as="h4" className="text-center">Create an Account</Card.Header>
-            <Card.Body>
-              {error && (
-                <Alert variant="danger">{error}</Alert>
-              )}
-              
-              <Form onSubmit={handleSubmit}>
-                <Row>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>First Name</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Last Name</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
-                
+    <Container className="auth-page">
+      <Card>
+        <Card.Header as="h4" className="text-center">Create an Account</Card.Header>
+        <Card.Body>
+          {error && (
+            <Alert variant="danger">{error}</Alert>
+          )}
+
+          <Form onSubmit={handleSubmit}>
+            <Row>
+              <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Email Address</Form.Label>
+                  <Form.Label>First Name</Form.Label>
                   <Form.Control
-                    type="email"
-                    name="email"
-                    value={formData.email}
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
                     onChange={handleInputChange}
                     required
                   />
                 </Form.Group>
-                
+              </Col>
+              <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Password</Form.Label>
+                  <Form.Label>Last Name</Form.Label>
                   <Form.Control
-                    type="password"
-                    name="password"
-                    value={formData.password}
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
                     onChange={handleInputChange}
                     required
-                    minLength={8}
-                  />
-                  <Form.Text className="text-muted">
-                    Password must be at least 8 characters long.
-                  </Form.Text>
-                </Form.Group>
-                
-                <Form.Group className="mb-4">
-                  <Form.Label>Confirm Password</Form.Label>
-                  <Form.Control
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    required
-                    minLength={8}
                   />
                 </Form.Group>
-                
-                <div className="d-grid mb-3">
-                  <Button 
-                    variant="primary" 
-                    type="submit"
-                    disabled={loading}
-                  >
-                    {loading ? 'Creating Account...' : 'Register'}
-                  </Button>
-                </div>
-              </Form>
-              
-              <div className="text-center">
-                <p>
-                  Already have an account?{' '}
-                  <Link to="/login">Login</Link>
-                </p>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Email Address</Form.Label>
+              <Form.Control
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Password</Form.Label>
+              <Form.Control
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                required
+                minLength={8}
+              />
+              <Form.Text className="text-muted">
+                Password must be at least 8 characters long.
+              </Form.Text>
+            </Form.Group>
+
+            <Form.Group className="mb-4">
+              <Form.Label>Confirm Password</Form.Label>
+              <Form.Control
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                required
+                minLength={8}
+              />
+            </Form.Group>
+
+            <div className="d-grid mb-3">
+              <Button
+                variant="primary"
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? 'Creating Account...' : 'Register'}
+              </Button>
+            </div>
+          </Form>
+
+          <div className="text-center">
+            <p>
+              Already have an account?{' '}
+              <Link to="/login">Login</Link>
+            </p>
+          </div>
+        </Card.Body>
+        <div className="text-center ">
+          <Button className="back-home-button" variant="outline-primary" onClick={() => navigate('/')}>Back to Home</Button>
+        </div>
+      </Card>
+
     </Container>
   );
 }

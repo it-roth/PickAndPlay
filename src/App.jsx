@@ -1,7 +1,7 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './App.css';
+import './assets/styles/App.css';
 
 // Components
 import Navbar from './components/Navbar';
@@ -12,10 +12,12 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetails from './pages/ProductDetails';
+import Categories from './pages/Categories';
 import Cart from './pages/Cart';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import About from './pages/About';
+import Contact from './pages/Contact';
 
 // Admin Pages
 import Dashboard from './pages/Admin/Dashboard';
@@ -44,7 +46,14 @@ function App() {
       if (userData) {
         try {
           const user = JSON.parse(userData);
-          setIsAdmin(user.role === 'ADMIN');
+          const maybeRole = user?.role ?? user?.roles ?? user?.authorities;
+          let adminDetected = false;
+          if (Array.isArray(maybeRole)) {
+            adminDetected = maybeRole.some(r => String(r).toLowerCase().includes('admin'));
+          } else if (maybeRole) {
+            adminDetected = String(maybeRole).toLowerCase().includes('admin');
+          }
+          setIsAdmin(adminDetected);
         } catch (e) {
           console.error('Error parsing user data:', e);
         }
@@ -52,21 +61,31 @@ function App() {
     }
   }, []);
 
-  return (
-    <Router>
+  // Layout component allows us to read the current location (inside Router)
+  function Layout() {
+    const location = useLocation();
+    // Hide Navbar/Footer for admin routes and auth pages (login/register)
+    const isAdminPath = location.pathname.startsWith('/admin');
+    const isAuthPage = location.pathname.startsWith('/login') || location.pathname.startsWith('/register');
+    const hideShell = isAdminPath || isAuthPage;
+
+    return (
       <div className="d-flex flex-column min-vh-100 position-relative">
-        <Navbar />
-        
+        {!hideShell && <Navbar />}
+
         <main className="flex-grow-1 main-content">
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Home />} />
             <Route path="/shop" element={<Shop />} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/categories/:name" element={<Categories />} />
             <Route path="/product/:id" element={<ProductDetails />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
             
             {/* Admin routes (protected) */}
             <Route path="/admin/dashboard" element={
@@ -104,9 +123,14 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
-        
-        <Footer />
+  {!hideShell && <Footer />}
       </div>
+    );
+  }
+
+  return (
+    <Router>
+      <Layout />
     </Router>
   );
 }

@@ -21,8 +21,39 @@
 }
 
 .navbar-wrapper {
-  position: relative;
-  z-index: 1100;
+  /* Make the entire header fixed at the top so navigation is always visible */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1200;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  background: transparent;
+}
+
+/* Ensure page content is not hidden under the fixed header.
+   Adjust these values if your header height changes. */
+body {
+  padding-top: 160px;
+  /* default offset for desktop (banner + topbar + navbar + desktop-nav) */
+}
+
+@media (max-width: 991.98px) {
+
+  /* On smaller screens the desktop nav is hidden, reduce the offset */
+  body {
+    padding-top: 120px;
+    /* banner + topbar + main-navbar (mobile) */
+  }
+}
+
+@media (max-width: 420px) {
+
+  /* On very small screens, header is more compact */
+  body {
+    padding-top: 110px;
+  }
 }
 
 /* Remove underlines globally for navbar links and dropdown toggles */
@@ -50,32 +81,70 @@
 
 /* Main navbar (logo, search, icons) - updated to match screenshots */
 .main-navbar {
+<<<<<<< HEAD
   background: #026821; /* royal blue */
+=======
+  background: #184ea6;
+  /* royal blue */
+>>>>>>> origin/main
   color: #fff;
   padding: 0.5rem 0;
 }
 
-.main-navbar .brand-logo { height: 46px; }
+.main-navbar .brand-logo {
+  height: 46px;
+}
 
 /* make the search box prominent and centered */
-.search-container { flex: 1 1 55%; display:flex; justify-content:center; }
-.navbar-search-form { width: 70%; max-width: 620px; }
-.navbar-search-input { background: #fff; color: #1a2030; border: 1px solid rgba(0,0,0,0.08); border-radius: 24px 0 0 24px !important; }
-.navbar-search-input::placeholder { color: #6c757d; }
-.navbar-search-button { 
-  background: var(--pp-accent); 
-  border-color: var(--pp-accent); 
-  color:#fff; 
-  border-radius: 0 24px 24px 0 !important; 
+.search-container {
+  flex: 1 1 55%;
+  display: flex;
+  justify-content: center;
 }
-.navbar-search-button .bi-search { 
-  color: #ffffff !important; 
+
+.navbar-search-form {
+  width: 70%;
+  max-width: 620px;
+}
+
+.navbar-search-input {
+  background: #fff;
+  color: #1a2030;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 24px 0 0 24px !important;
+}
+
+.navbar-search-input::placeholder {
+  color: #6c757d;
+}
+
+.navbar-search-button {
+  background: var(--pp-accent);
+  border-color: var(--pp-accent);
+  color: #fff;
+  border-radius: 0 24px 24px 0 !important;
+}
+
+.navbar-search-button .bi-search {
+  color: #ffffff !important;
 }
 
 /* align logo left, icons right */
-.logo-container { display:flex; align-items:center; }
-.nav-icons { display:flex; gap:12px; align-items:center; }
-.nav-icon-link { color:#fff; }
+.logo-container {
+  display: flex;
+  align-items: center;
+}
+
+.nav-icons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.nav-icon-link {
+  color: #fff;
+}
+
 /* Make ALL icon glyphs white */
 .nav-icon-link .bi,
 .nav-icon-link i,
@@ -105,34 +174,38 @@ a:hover i,
 }
 
 /* Link hover effect */
-.nav-icon-link:hover { color: var(--pp-accent) !important; }
+.nav-icon-link:hover {
+  color: var(--pp-accent) !important;
+}
 
 /* Categories strip: white horizontal bar with centered nav */
-.desktop-nav-container { 
-  background: #fff; 
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+.desktop-nav-container {
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
-.desktop-inner { 
-  max-width: 1200px; 
-  margin: 0 auto; 
-  padding: 12px 16px; 
-  display:flex; 
-  align-items:center; 
-  gap:16px; 
+
+.desktop-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
+
 /* Categories dropdown takes the full width on mobile */
 @media (max-width: 991.98px) {
   .categories-dropdown {
     width: 100%;
   }
-  
+
   .categories-toggle {
     width: 100%;
     justify-content: space-between;
     padding: 12px 16px;
     border-radius: 4px;
-    border: 1px solid rgba(0,0,0,0.1) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
   }
 }
 
@@ -143,11 +216,17 @@ a:hover i,
     min-width: 200px;
   }
 }
-.main-menu { display:flex; gap:20px; margin-left:auto; }
-.main-nav-link { 
-  color: #1a2030 !important; 
-  font-weight:600; 
-  padding:6px 8px !important; 
+
+.main-menu {
+  display: flex;
+  gap: 20px;
+  margin-left: auto;
+}
+
+.main-nav-link {
+  color: #1a2030 !important;
+  font-weight: 600;
+  padding: 6px 8px !important;
   position: relative;
   transition: all 0.2s ease;
 }
@@ -177,8 +256,9 @@ a:hover i,
   transition: transform 0.3s ease;
 }
 
-.main-nav-link.active, .main-nav-link:hover { 
-  color: var(--pp-accent) !important; 
+.main-nav-link.active,
+.main-nav-link:hover {
+  color: var(--pp-accent) !important;
 }
 
 /* Unified dropdown styling for consistency */
@@ -186,7 +266,7 @@ a:hover i,
 .dropdown-menu,
 .desktop-nav-container .dropdown-menu {
   border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
   border: none;
   padding: 8px 0;
   margin-top: 0;
@@ -197,8 +277,15 @@ a:hover i,
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Styling for category dropdown button */
@@ -257,10 +344,17 @@ a:hover i,
 
 /* Hover effects for all dropdown items */
 .dropdown-item:hover,
+<<<<<<< HEAD
 .desktop-nav-container .dropdown-menu .dropdown-item:hover { 
   color: var(--pp-accent) !important; 
   border-left: none !important; 
   background-color: rgba(186, 111, 50, 0.05);
+=======
+.desktop-nav-container .dropdown-menu .dropdown-item:hover {
+  color: var(--pp-accent) !important;
+  border-left: none !important;
+  background-color: rgba(253, 126, 20, 0.05);
+>>>>>>> origin/main
   text-decoration: none !important;
 }
 
@@ -272,7 +366,10 @@ a:hover i,
 }
 
 /* Remove all left borders and underlines from dropdown items */
-.dropdown-item, .dropdown-item:hover, .dropdown-item:active, .dropdown-item.active {
+.dropdown-item,
+.dropdown-item:hover,
+.dropdown-item:active,
+.dropdown-item.active {
   border-left: none !important;
   padding-left: 1rem !important;
   transform: none !important;
@@ -309,54 +406,98 @@ a:hover {
 }
 
 /* Mobile collapse panel */
-#main-navbar-nav { 
-  background:#fff; 
+#main-navbar-nav {
+  background: #fff;
   border-radius: 0 0 12px 12px;
   border: none;
-  box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
 }
-.mobile-nav .mobile-nav-link { 
-  color:#1a2030 !important; 
+
+.mobile-nav .mobile-nav-link {
+  color: #1a2030 !important;
   padding: 12px 16px;
   font-weight: 500;
   transition: all 0.2s ease;
-  border-bottom: 1px solid rgba(0,0,0,0.04);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 }
-.mobile-nav .mobile-nav-link:hover, .mobile-nav .mobile-nav-link.active { 
-  color: var(--pp-accent) !important; 
+
+.mobile-nav .mobile-nav-link:hover,
+.mobile-nav .mobile-nav-link.active {
+  color: var(--pp-accent) !important;
   background-color: rgba(253, 126, 20, 0.03);
 }
 
 /* Responsive rules */
 @media (max-width: 991px) {
-  .desktop-nav-container { display:none; }
-  .search-container { order: 2; width:100%; padding:0 12px; }
-  .navbar-search-form { width:100%; }
-  .logo-container { order: 1; }
-  .nav-icons { order: 3; }
-  #main-navbar-nav { position: absolute; top:100%; left:0; right:0; z-index:1200; box-shadow:0 12px 30px rgba(0,0,0,0.12); max-height:70vh; overflow:auto; }
+  .desktop-nav-container {
+    display: none;
+  }
+
+  .search-container {
+    order: 2;
+    width: 100%;
+    padding: 0 12px;
+  }
+
+  .navbar-search-form {
+    width: 100%;
+  }
+
+  .logo-container {
+    order: 1;
+  }
+
+  .nav-icons {
+    order: 3;
+  }
+
+  #main-navbar-nav {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1200;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+    max-height: 70vh;
+    overflow: auto;
+  }
 }
 
 @media (min-width: 992px) {
-  #main-navbar-nav { display:none !important; }
-  .search-container { order: 0; }
+  #main-navbar-nav {
+    display: none !important;
+  }
+
+  .search-container {
+    order: 0;
+  }
 }
 
 /* Top banner */
+<<<<<<< HEAD
 .black-friday-banner { 
   background: linear-gradient(90deg, #0f1730, #106e1d); 
   color:#fff; 
   padding:8px 0; 
+=======
+.black-friday-banner {
+  background: linear-gradient(90deg, #0f1730, #1a2c4e);
+  color: #fff;
+  padding: 8px 0;
+>>>>>>> origin/main
 }
-.banner-discount { 
-  color:#fff; 
-  font-weight:700; 
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+
+.banner-discount {
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
+
 .shop-now-btn {
   transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
 .shop-now-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
@@ -373,7 +514,8 @@ button.shop-now-btn .shop-now-icon {
 .shop-now-btn:hover .shop-now-icon,
 .shop-now-btn:focus .shop-now-icon,
 .shop-now-btn:active .shop-now-icon {
-  color: #fd7e14 !important; /* Hardcoded orange on hover */
+  color: #fd7e14 !important;
+  /* Hardcoded orange on hover */
 }
 
 /* Make search button icon more visible */
@@ -413,8 +555,21 @@ button.shop-now-btn .shop-now-icon {
 }
 
 /* Topbar below banner (thin blue strip) */
+<<<<<<< HEAD
 .topbar { background: #056f5c; color:#fff; padding:6px 0; }
 .language-dropdown, .currency-dropdown { color:#fff !important; }
+=======
+.topbar {
+  background: #285fb2;
+  color: #fff;
+  padding: 6px 0;
+}
+
+.language-dropdown,
+.currency-dropdown {
+  color: #fff !important;
+}
+>>>>>>> origin/main
 
 /* Make language and currency dropdown icons change to orange on hover */
 .language-dropdown:hover .bi,
@@ -449,7 +604,9 @@ button.shop-now-btn .shop-now-icon {
 }
 
 /* Small polish */
-.navbar-search-button:hover { opacity:0.95; }
+.navbar-search-button:hover {
+  opacity: 0.95;
+}
 
 /* Custom shop button to ensure hover works on all screen sizes */
 .shop-now-btn-custom:hover .shop-now-icon {
@@ -463,7 +620,8 @@ html body .black-friday-banner .shop-now-btn:active .shop-now-icon,
 html body button.shop-now-btn:hover .bi-arrow-right.shop-now-icon,
 html body button.shop-now-btn:hover i.shop-now-icon,
 .shop-now-btn:hover .shop-now-icon {
-  color: #fd7e14 !important; /* Hardcoded orange to avoid variable issues */
+  color: #fd7e14 !important;
+  /* Hardcoded orange to avoid variable issues */
 }
 
 /* Global rule to ensure all icons turn orange on hover */
@@ -476,3 +634,38 @@ html body button.shop-now-btn:hover i.shop-now-icon,
   color: var(--pp-accent) !important;
 }
 
+
+.promo-bar button:hover {
+  background: #fff;
+  color: #FF7A00 !important;
+}
+
+.nav-icon:hover {
+  color: #FF7A00 !important;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  font-size: 11px;
+  padding: 2px 5px;
+  border-radius: 50%;
+}
+
+.main-link {
+  color: #333 !important;
+  transition: color 0.2s ease;
+}
+
+.main-link:hover,
+.main-link.active {
+  color: #FF7A00 !important;
+}
+
+.navbar-search-button:hover,
+.btn-outline-warning:hover {
+  background-color: #FF7A00 !important;
+  color: white !important;
+  border-color: #FF7A00 !important;
+}

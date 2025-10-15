@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Table, Button, Form, InputGroup, Pagination, Badge } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { orderService } from '../../services/api';
+import { orderService } from '../../lib/api';
 
 function Orders() {
   const [orders, setOrders] = useState([]);

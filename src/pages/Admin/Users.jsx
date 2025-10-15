@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Table, Button, Form, InputGroup, Pagination, Badge, Modal } from 'react-bootstrap';
-import { userService } from '../../services/api';
+import { userService } from '../../lib/api';
+import { getImageUrl, isValidImageFile, formatFileSize } from '../../lib/utils';
 
 function Users() {
   const [users, setUsers] = useState([]);
@@ -11,27 +12,29 @@ function Users() {
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userFormData, setUserFormData] = useState({
-    firstName: '',
-    lastName: '',
+    name: '',
+    password: '',
     email: '',
-    role: ''
+    gender: '',
+    role: 'USER',
+    images: null
   });
+  const [isCreating, setIsCreating] = useState(false);
   
   const usersPerPage = 10;
   
-  // Filter users based on search term and role
+  // Filter users based on search term and gender
   const filteredUsers = users.filter(user => {
     // Search by name or email
     const searchMatch = 
       searchTerm === '' || 
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Filter by role
-    const roleMatch = roleFilter === '' || user.role === roleFilter;
+    // Filter by gender
+    const genderMatch = roleFilter === '' || user.gender === roleFilter;
     
-    return searchMatch && roleMatch;
+    return searchMatch && genderMatch;
   });
   
   // Paginate users
@@ -72,51 +75,101 @@ function Users() {
   const handleEditUser = (user) => {
     setSelectedUser(user);
     setUserFormData({
-      firstName: user.firstName,
-      lastName: user.lastName,
+      name: user.name,
+      password: '', // Don't populate password for security
       email: user.email,
-      role: user.role
+      gender: user.gender,
+      role: user.role ?? 'USER',
+      images: null
     });
+    setIsCreating(false);
     setShowModal(true);
+  };
+
+  const handleCreateUser = () => {
+    setSelectedUser(null);
+    setUserFormData({
+      name: '',
+      password: '',
+      email: '',
+      gender: 'M',
+      role: 'USER',
+      images: null
+    });
+    setIsCreating(true);
+    setShowModal(true);
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      try {
+        await userService.deleteUser(userId);
+        setUsers(users.filter(user => user.id !== userId));
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        alert('Failed to delete user. Please try again.');
+      }
+    }
   };
   
   const handleFormChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, files } = e.target;
+    
+    if (name === 'images' && files && files.length > 0) {
+      const file = files[0];
+      if (!isValidImageFile(file)) {
+        alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+        e.target.value = '';
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        alert(`File size too large. Maximum size is 5MB. Your file is ${formatFileSize(file.size)}`);
+        e.target.value = '';
+        return;
+      }
+    }
+    
     setUserFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: files ? files : value
     }));
   };
   
   const handleSaveUser = async () => {
-    if (!selectedUser) return;
-    
     try {
-      await userService.updateUser(selectedUser.id, userFormData);
-      
-      // Update user in the state
-      const updatedUsers = users.map(user => 
-        user.id === selectedUser.id ? { ...user, ...userFormData } : user
-      );
-      setUsers(updatedUsers);
+      if (isCreating) {
+        // Create new user
+        const response = await userService.createUser(userFormData);
+        setUsers([...users, response.data]);
+      } else {
+        // Update existing user
+        if (!selectedUser) return;
+        await userService.updateUser(selectedUser.id, userFormData);
+        
+        // Update user in the state
+        const updatedUsers = users.map(user => 
+          user.id === selectedUser.id ? { ...user, ...userFormData, images: user.images } : user
+        );
+        setUsers(updatedUsers);
+      }
       
       setShowModal(false);
       setSelectedUser(null);
+      setIsCreating(false);
     } catch (error) {
-      console.error('Error updating user:', error);
-      alert('Failed to update user. Please try again.');
+      console.error('Error saving user:', error);
+      alert(`Failed to ${isCreating ? 'create' : 'update'} user. Please try again.`);
     }
   };
   
-  const getRoleBadgeVariant = (role) => {
-    switch (role) {
-      case 'ADMIN':
-        return 'danger';
-      case 'MANAGER':
-        return 'warning';
-      case 'USER':
+  const getGenderBadgeVariant = (gender) => {
+    switch (gender) {
+      case 'F':
+        return 'success';
+      case 'M':
+        return 'primary';
       default:
-        return 'info';
+        return 'secondary';
     }
   };
 
@@ -145,18 +198,25 @@ function Users() {
         
         <div className="col-md-3">
           <InputGroup>
-            <InputGroup.Text>Role</InputGroup.Text>
+            <InputGroup.Text>Gender</InputGroup.Text>
             <Form.Select
               value={roleFilter}
               onChange={handleRoleFilter}
             >
-              <option value="">All Roles</option>
-              <option value="ADMIN">Admin</option>
-              <option value="MANAGER">Manager</option>
-              <option value="USER">User</option>
+              <option value="">All Genders</option>
+              <option value="M">Male</option>
+              <option value="F">Female</option>
             </Form.Select>
           </InputGroup>
         </div>
+      </div>
+      
+      {/* Create User Button */}
+      <div className="mb-3">
+        <Button variant="primary" onClick={handleCreateUser}>
+          <i className="bi bi-plus-circle me-2"></i>
+          Create New User
+        </Button>
       </div>
       
       {isLoading ? (
@@ -171,8 +231,8 @@ function Users() {
                 <th>ID</th>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Role</th>
-                <th>Joined</th>
+                <th>Gender</th>
+                <th>Profile Image</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -181,21 +241,41 @@ function Users() {
                 currentUsers.map(user => (
                   <tr key={user.id}>
                     <td>{user.id}</td>
-                    <td>{`${user.firstName} ${user.lastName}`}</td>
+                    <td>{user.name}</td>
                     <td>{user.email}</td>
                     <td>
-                      <Badge bg={getRoleBadgeVariant(user.role)}>
-                        {user.role}
+                      <Badge bg={getGenderBadgeVariant(user.gender)}>
+                        {user.gender === 'M' ? 'Male' : user.gender === 'F' ? 'Female' : 'Other'}
                       </Badge>
                     </td>
-                    <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      {user.images ? (
+                        <img 
+                          src={getImageUrl(user.images)} 
+                          alt="Profile" 
+                          style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <span className="text-muted">No image</span>
+                      )}
+                    </td>
                     <td>
                       <Button 
                         onClick={() => handleEditUser(user)} 
                         variant="outline-primary" 
                         size="sm"
+                        className="me-2"
                       >
+                        <i className="bi bi-pencil-square me-1"></i>
                         Edit
+                      </Button>
+                      <Button 
+                        onClick={() => handleDeleteUser(user.id)} 
+                        variant="outline-danger" 
+                        size="sm"
+                      >
+                        <i className="bi bi-trash me-1"></i>
+                        Delete
                       </Button>
                     </td>
                   </tr>
@@ -269,54 +349,87 @@ function Users() {
         </>
       )}
       
-      {/* Edit User Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
+      {/* User Modal */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>Edit User</Modal.Title>
+          <Modal.Title>{isCreating ? 'Create New User' : 'Edit User'}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
             <Form.Group className="mb-3">
-              <Form.Label>First Name</Form.Label>
+              <Form.Label>Name *</Form.Label>
               <Form.Control
                 type="text"
-                name="firstName"
-                value={userFormData.firstName}
+                name="name"
+                value={userFormData.name}
                 onChange={handleFormChange}
+                placeholder="Enter full name"
+                required
               />
             </Form.Group>
             
             <Form.Group className="mb-3">
-              <Form.Label>Last Name</Form.Label>
-              <Form.Control
-                type="text"
-                name="lastName"
-                value={userFormData.lastName}
-                onChange={handleFormChange}
-              />
-            </Form.Group>
-            
-            <Form.Group className="mb-3">
-              <Form.Label>Email</Form.Label>
+              <Form.Label>Email *</Form.Label>
               <Form.Control
                 type="email"
                 name="email"
                 value={userFormData.email}
                 onChange={handleFormChange}
+                placeholder="Enter email address"
+                required
               />
             </Form.Group>
             
             <Form.Group className="mb-3">
-              <Form.Label>Role</Form.Label>
+              <Form.Label>Password {isCreating ? '*' : '(leave blank to keep current)'}</Form.Label>
+              <Form.Control
+                type="password"
+                name="password"
+                value={userFormData.password}
+                onChange={handleFormChange}
+                placeholder={isCreating ? "Enter password" : "Enter new password (optional)"}
+                required={isCreating}
+              />
+            </Form.Group>
+            
+            <Form.Group className="mb-3">
+              <Form.Label>Gender *</Form.Label>
+              <Form.Select
+                name="gender"
+                value={userFormData.gender}
+                onChange={handleFormChange}
+                required
+              >
+                <option value="">Select Gender</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Role *</Form.Label>
               <Form.Select
                 name="role"
                 value={userFormData.role}
                 onChange={handleFormChange}
+                required
               >
                 <option value="USER">User</option>
-                <option value="MANAGER">Manager</option>
                 <option value="ADMIN">Admin</option>
               </Form.Select>
+            </Form.Group>
+            
+            <Form.Group className="mb-3">
+              <Form.Label>Profile Image</Form.Label>
+              <Form.Control
+                type="file"
+                name="images"
+                onChange={handleFormChange}
+                accept="image/*"
+              />
+              <Form.Text className="text-muted">
+                Upload a profile image (optional)
+              </Form.Text>
             </Form.Group>
           </Form>
         </Modal.Body>
@@ -325,7 +438,7 @@ function Users() {
             Cancel
           </Button>
           <Button variant="primary" onClick={handleSaveUser}>
-            Save Changes
+            {isCreating ? 'Create User' : 'Save Changes'}
           </Button>
         </Modal.Footer>
       </Modal>

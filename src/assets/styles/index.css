@@ -1,5 +1,6 @@
 :root {
   --primary-color: #ff8c00; /* Orange as main color */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
   --secondary-color: #2e8b57; /* Green as secondary color */
   --success-color: #28a745;
   --danger-color: #dc3545;
@@ -19,9 +20,9 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
+  font-family: var(--font-family);
+  font-size: 16px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #f8f9fa;
@@ -39,9 +40,18 @@ a:hover {
 }
 
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family);
   font-weight: 700;
-  margin-bottom: 1rem;
+  margin-bottom: 0.6rem;
+  letter-spacing: -0.02em;
 }
+
+h1 { font-size: 2.1rem; }
+h2 { font-size: 1.6rem; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.05rem; }
+
+small, .small { font-size: 0.85rem; }
 
 /* Custom classes for the guitar shop */
 .product-image:hover {

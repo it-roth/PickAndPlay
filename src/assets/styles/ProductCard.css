@@ -1,0 +1,631 @@
+.product-card {
+  background: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Image Section */
+.product-image-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.product-image-container {
+  position: relative;
+  /* Further compact card: shorter image height */
+  height: 70px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  overflow: hidden;
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  /* show the full image (no cropping) inside the fixed-height box */
+  object-fit: contain;
+  object-position: center;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  background: #ffffff; /* neutral background for letterboxing */
+  display: block;
+  /* rendering hints to avoid blurring when parent is transformed or during scroll */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: opacity, transform;
+  image-rendering: auto;
+}
+
+/* Mobile compacting: make letters and buttons shorter on small screens only */
+@media (max-width: 420px) {
+  .product-image-container {
+    height: 54px; /* even smaller for very compact mobile */
+  }
+
+  /* hide brand badge on very small screens to save vertical space */
+  .brand-badge {
+    display: none;
+  }
+
+  .product-title {
+    font-size: 9px;
+    min-height: 14px;
+    margin-bottom: 2px;
+  }
+
+  /* hide the short description on tiny screens */
+  .product-short-desc {
+    display: none !important;
+  }
+
+  /* tighten rating, price, stock and actions */
+  .product-rating {
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .product-rating .stars svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  .rating-count {
+    font-size: 10px;
+  }
+
+  .product-price-section {
+    margin-bottom: 2px;
+    padding: 1px 0;
+  }
+
+  .current-price {
+    font-size: 10px;
+  }
+
+  .old-price {
+    font-size: 9px;
+  }
+
+  .stock-status {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 12px;
+  }
+
+  .product-actions {
+    gap: 3px;
+  }
+
+  .product-actions button {
+    padding: 3px 5px;
+    font-size: 8px;
+    height: 24px;
+    border-radius: 6px;
+  }
+
+  .product-actions button svg {
+    width: 10px;
+    height: 10px;
+    margin-right: 4px;
+  }
+
+  .btn-details {
+    padding: 2px 6px;
+    font-size: 8px;
+    border-radius: 7px;
+  }
+
+  .btn-add-cart {
+    padding: 3px 6px;
+    font-size: 8px;
+  }
+
+  /* hide overlay and discount on tiny screens to reduce clutter */
+  .product-overlay,
+  .discount-badge {
+    display: none !important;
+  }
+}
+
+.product-image.loaded {
+  opacity: 1;
+}
+
+.product-card:hover .product-image {
+  /* keep subtle emphasis but don't crop or scale the full image */
+  transform: none;
+}
+
+.image-skeleton {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.no-image-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.6);
+  gap: 12px;
+  background: #fff;
+}
+
+.no-image-placeholder span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Hover Overlay */
+
+/* Small, non-obtrusive quick-view overlay (top-left pill) */
+.product-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: auto;
+  bottom: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none; /* don't block clicks unless visible */
+  transition: opacity 0.18s ease;
+  /* avoid vertical transform which can cause jitter during scroll; keep anchored */
+  transform: none;
+  z-index: 6; /* ensure overlay stays above the image */
+  will-change: opacity;
+}
+
+/* show overlay on hover for devices that support hover */
+@media (hover: hover) {
+  .product-card:hover .product-overlay {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+}
+
+
+.quick-view-btn {
+  background: rgba(255,255,255,0.98);
+  color: #0f172a;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 18px;
+  font-weight: 700;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.08);
+}
+
+.product-card:hover .quick-view-btn {
+  transform: translateY(0);
+}
+
+.quick-view-btn:hover {
+  background: #f9fafb;
+  transform: scale(1.05);
+}
+
+.discount-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+  z-index: 2;
+}
+
+/* Content Section */
+.product-content {
+  /* Further reduced padding to make the card more compact */
+  padding: 8px 8px 6px 8px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-header {
+  margin-bottom: 8px;
+}
+
+.brand-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
+}
+
+.product-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  line-height: 1.05;
+  display: -webkit-box;
+  -webkit-line-clamp: 1; /* single-line ellipsis to keep titles short */
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 18px;
+  padding-right: 4px;
+}
+
+/* Rating */
+.product-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.rating-count {
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Price Section */
+.product-price-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding: 4px 0;
+  border-top: 1px solid #fbfdff;
+  border-bottom: 1px solid #fbfdff;
+}
+
+.price-wrapper {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.current-price {
+  font-size: 13px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.old-price {
+  font-size: 16px;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
+.stock-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 16px;
+}
+
+.stock-status.in-stock {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Action Buttons */
+.product-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+  align-items: center;
+}
+
+.product-actions button {
+  border: none;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.14s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  height: 30px; /* tighter */
+}
+
+/* Ensure icons inside buttons are consistent and aligned */
+.product-actions button svg {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+/* Slight stroke reduction for small icons so they look crisp */
+.product-actions button svg [stroke-width] {
+  stroke-width: 1.6 !important;
+}
+
+/* Center the icon and text as a single unit */
+.product-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-actions .btn-text {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.btn-details {
+  /* Compact blue details button */
+  background: linear-gradient(135deg,#3b82f6 0%, #2563eb 100%);
+  color: #fff;
+  padding: 5px 8px;
+  font-size: 11px;
+  border: none;
+  box-shadow: 0 6px 12px rgba(37,99,235,0.08);
+  border-radius: 10px;
+  flex: 0 0 auto;
+}
+
+.btn-details:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg,#60a5fa 0%, #1e40af 100%);
+  box-shadow: 0 10px 28px rgba(124,58,237,0.22);
+}
+
+.btn-add-cart {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  box-shadow: 0 6px 12px rgba(234,88,12,0.10);
+  padding: 6px 8px;
+  font-size: 11px;
+  flex: 1 1 auto;
+}
+
+.btn-add-cart:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+}
+
+.btn-add-cart:active {
+  transform: scale(0.98);
+}
+
+/* Toast Notification */
+.toast-notification {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  min-width: 320px;
+  animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Desktop / fullscreen adjustments: make product image area larger on wide viewports */
+@media (min-width: 992px) {
+  .product-image-container {
+    height: 120px; /* larger image area for laptop+ */
+  }
+}
+
+@media (min-width: 1400px) {
+  .product-image-container {
+    height: 160px; /* even larger for very wide/fullscreen displays */
+  }
+}
+
+/* Ensure image keeps centered containment so larger area doesn't crop awkwardly */
+.product-image {
+  object-position: center;
+}
+
+.toast-content {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.toast-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toast-icon svg {
+  stroke: white;
+}
+
+.toast-text strong {
+  display: block;
+  color: #111827;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.toast-text p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  animation: progress 3s linear;
+}
+
+@keyframes progress {
+  from {
+    width: 100%;
+  }
+
+  to {
+    width: 0%;
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .product-content {
+    padding: 20px;
+  }
+
+  .product-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .toast-notification {
+    right: 16px;
+    left: 16px;
+    min-width: auto;
+  }
+}
+
+/* Tighter card styling for very small screens (3-up layout) */
+@media (max-width: 420px) {
+  .product-image-container {
+    height: 110px; /* slightly shorter to leave more room for content */
+  }
+
+  .product-title {
+    font-size: 13px;
+    -webkit-line-clamp: 2; /* allow 2 lines, but still compact */
+    line-clamp: 2;
+    min-height: 40px;
+  }
+
+  .product-short-desc {
+    font-size: 0.85rem;
+    line-height: 1.3;
+    max-height: 48px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+
+  .product-content {
+    padding: 8px;
+  }
+
+  .brand-badge { font-size: 9px; padding: 2px 6px; }
+
+  .current-price { font-size: 15px; }
+
+  .product-actions button { font-size: 12px; padding: 8px; height: 36px; }
+}
+
+/* Quick view modal image styles */
+.quickview-image-wrapper { background: #fff; padding: 12px; border-radius: 8px; }
+.quickview-image { max-width: 100%; max-height: 420px; object-fit: contain; display:block; image-rendering: auto; -webkit-backface-visibility: hidden; backface-visibility: hidden; transform: translateZ(0); }
+
+/* Avoid blurring by removing transform effects on hover for images */
+.product-image, .quickview-image { transition: opacity 0.2s ease; }
+.product-card:hover .product-image { transform: none; }

@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
-import { productService } from '../services/api';
+import { useParams, useLocation } from 'react-router-dom';
+import { Container, Row, Col, Form, Button, Card, Pagination } from 'react-bootstrap';
+import { productService } from '../lib/api';
 import ProductCard from '../components/ProductCard';
 
 function Shop() {
+  const { categoryName } = useParams();
+  const location = useLocation();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
@@ -13,8 +17,17 @@ function Shop() {
     minPrice: '',
     maxPrice: '',
     brand: '',
-    sortBy: 'name',
+    // default to newest so last/most-recent products show first
+    sortBy: 'newest',
   });
+
+  // Map URL category names to actual category values
+  const categoryMap = {
+    'electric': 'Electric Guitar',
+    'acoustic': 'Acoustic Guitar', 
+    'bass': 'Bass Guitar',
+    'accessories': 'Accessories'
+  };
   
   // Get all available categories and brands from products
   const categories = [...new Set(products.map(p => p.category))];
@@ -35,10 +48,27 @@ function Shop() {
     
     fetchProducts();
   }, []);
+
+  // Set category filter based on URL parameter
+  useEffect(() => {
+    if (categoryName && categoryMap[categoryName]) {
+      setFilters(prev => ({
+        ...prev,
+        category: categoryMap[categoryName]
+      }));
+    } else {
+      // Clear category filter if no category in URL
+      setFilters(prev => ({
+        ...prev,
+        category: ''
+      }));
+    }
+  }, [categoryName, location.pathname]);
   
   useEffect(() => {
     // Apply filters whenever filters change
     applyFilters();
+    setCurrentPage(1);
   }, [filters, products]);
   
   const applyFilters = () => {
@@ -73,6 +103,22 @@ function Shop() {
     
     // Apply sorting
     switch (filters.sortBy) {
+      case 'newest':
+        // sort by numeric id or fallback to string _id; newest (largest) first
+        result.sort((a, b) => {
+          const ai = Number(a.id ?? a._id ?? 0);
+          const bi = Number(b.id ?? b._id ?? 0);
+          return bi - ai;
+        });
+        break;
+      case 'oldest':
+        // oldest first
+        result.sort((a, b) => {
+          const ai = Number(a.id ?? a._id ?? 0);
+          const bi = Number(b.id ?? b._id ?? 0);
+          return ai - bi;
+        });
+        break;
       case 'priceAsc':
         result.sort((a, b) => a.price - b.price);
         break;
@@ -85,6 +131,21 @@ function Shop() {
     }
     
     setFilteredProducts(result);
+  };
+
+  // Pagination
+  const itemsPerPage = 9;
+  const totalItems = filteredProducts.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(totalItems, currentPage * itemsPerPage);
+  const pagedProducts = filteredProducts.slice(startIndex, endIndex);
+
+  const goToPage = (page) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    // scroll to top of products list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
   const handleFilterChange = (e) => {
@@ -106,9 +167,30 @@ function Shop() {
     });
   };
 
+  const getCategoryTitle = () => {
+    if (categoryName && categoryMap[categoryName]) {
+      return categoryMap[categoryName] + 's';
+    }
+    return 'Guitar Shop';
+  };
+
   return (
-    <Container className="py-5">
-      <h1 className="mb-4">Guitar Shop</h1>
+    <Container className="mt-5 pt-5">
+      <div className="mb-4">
+        <h1>{getCategoryTitle()}</h1>
+        {categoryName && (
+          <nav aria-label="breadcrumb">
+            <ol className="breadcrumb">
+              <li className="breadcrumb-item">
+                <a href="/shop">Shop</a>
+              </li>
+              <li className="breadcrumb-item active" aria-current="page">
+                {categoryMap[categoryName]}
+              </li>
+            </ol>
+          </nav>
+        )}
+      </div>
       
       <Row>
         {/* Filters sidebar */}
@@ -220,23 +302,43 @@ function Shop() {
             <>
               <div className="mb-3">
                 <p className="mb-0">
-                  Showing {filteredProducts.length} of {products.length} products
+                  Showing {startIndex + 1} - {endIndex} of {totalItems} products
                 </p>
               </div>
               
-              {filteredProducts.length === 0 ? (
+              {pagedProducts.length === 0 ? (
                 <div className="text-center py-5">
                   <p>No products found matching your criteria.</p>
                   <Button onClick={resetFilters} variant="outline-primary">Reset Filters</Button>
                 </div>
               ) : (
-                <Row>
-                  {filteredProducts.map(product => (
-                    <Col key={product.id} lg={4} md={6} sm={12} className="mb-4">
-                      <ProductCard product={product} />
-                    </Col>
-                  ))}
-                </Row>
+                <>
+                  <Row>
+                    {pagedProducts.map(product => (
+                      <Col key={String(product.id ?? product._id ?? product._doc?._id)} lg={4} md={6} xs={6} className="mb-4">
+                        <ProductCard product={product} />
+                      </Col>
+                    ))}
+                  </Row>
+
+                  {/* Pagination controls */}
+                  {totalPages > 1 && (
+                    <div className="d-flex justify-content-center mt-3">
+                      <Pagination>
+                        <Pagination.Prev onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} />
+                        {Array.from({ length: totalPages }).map((_, idx) => {
+                          const page = idx + 1;
+                          return (
+                            <Pagination.Item key={page} active={page === currentPage} onClick={() => goToPage(page)}>
+                              {page}
+                            </Pagination.Item>
+                          );
+                        })}
+                        <Pagination.Next onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} />
+                      </Pagination>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

@@ -1,15 +1,42 @@
 import { useState, useEffect } from 'react';
-import { Container, Table, Button, Form, InputGroup, Pagination, Badge, Modal } from 'react-bootstrap';
+import { Container, Table, Button, Form, InputGroup, Pagination, Badge } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { productService } from '../../services/api';
+import { productService } from '../../lib/api';
+import { getImageUrl } from '../../lib/utils';
 
 function ProductList() {
+  // Small image component to gracefully handle errors
+  function ImageWithFallback({ src, alt, style }) {
+    const [errored, setErrored] = useState(false);
+    if (!src || errored) {
+      return (
+        <div 
+          className="no-image-placeholder d-flex align-items-center justify-content-center"
+          style={{ 
+            width: style?.width || '50px',
+            height: style?.height || '50px',
+            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+            borderRadius: '4px'
+          }}
+        >
+          <i className="bi bi-image text-muted" style={{ fontSize: '1.2rem' }}></i>
+        </div>
+      );
+    }
+
+    return (
+      <img 
+        src={src}
+        alt={alt}
+        style={style}
+        onError={() => setErrored(true)}
+      />
+    );
+  }
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [deleteModalShow, setDeleteModalShow] = useState(false);
-  const [productToDelete, setProductToDelete] = useState(null);
   
   const productsPerPage = 10;
   
@@ -48,28 +75,6 @@ function ProductList() {
   
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
-  };
-  
-  const confirmDelete = (product) => {
-    setProductToDelete(product);
-    setDeleteModalShow(true);
-  };
-  
-  const handleDelete = async () => {
-    if (!productToDelete) return;
-    
-    try {
-      await productService.deleteProduct(productToDelete.id);
-      // Remove deleted product from state
-      setProducts(prevProducts => 
-        prevProducts.filter(p => p.id !== productToDelete.id)
-      );
-      setDeleteModalShow(false);
-      setProductToDelete(null);
-    } catch (error) {
-      console.error('Error deleting product:', error);
-      alert('Failed to delete product. Please try again.');
-    }
   };
 
   return (
@@ -119,10 +124,10 @@ function ProductList() {
                 currentProducts.map(product => (
                   <tr key={product.id}>
                     <td width="80">
-                      <img 
-                        src={product.imageUrl || 'https://via.placeholder.com/50'} 
+                      <ImageWithFallback
+                        src={getImageUrl(product.images)}
                         alt={product.name}
-                        style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                        style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
                       />
                     </td>
                     <td>
@@ -151,13 +156,6 @@ function ProductList() {
                           size="sm"
                         >
                           Edit
-                        </Button>
-                        <Button 
-                          variant="outline-danger" 
-                          size="sm"
-                          onClick={() => confirmDelete(product)}
-                        >
-                          Delete
                         </Button>
                       </div>
                     </td>
@@ -225,25 +223,6 @@ function ProductList() {
           )}
         </>
       )}
-      
-      {/* Delete confirmation modal */}
-      <Modal show={deleteModalShow} onHide={() => setDeleteModalShow(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Delete</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          Are you sure you want to delete <strong>{productToDelete?.name}</strong>?
-          This action cannot be undone.
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setDeleteModalShow(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Delete
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </Container>
   );
 }
