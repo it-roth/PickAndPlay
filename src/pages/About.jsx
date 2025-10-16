@@ -17,9 +17,9 @@ function About() {
     },
     {
       id: 2,
-      name: "Sarah Williams",
+      name: "Pen Khemaraktumpoir",
       role: "UI/UX Designer",
-      bio: "Sarah brings creative design solutions with expertise in creating intuitive interfaces and engaging user experiences.",
+      bio: "Por brings creative design solutions with expertise in creating intuitive interfaces and engaging user experiences.",
       image: guitarTeam2
     },
     {
