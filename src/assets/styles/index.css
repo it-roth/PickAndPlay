@@ -18,6 +18,23 @@
   --green-dark: #1a5034;
 }
 
+/* Khmer font: apply when Khmer is active (body.lang-kh) */
+@font-face {
+  font-family: 'Khmer OS Siemreap';
+  /* The project may provide the font file under public/fonts; if not present, the browser will ignore this rule and fall back */
+  /* Place the file at: public/fonts/KhmerOSSiemreap.ttf for this to load in production
+     If you don't have the font file, the browser will fall back to the Khmer system fonts. */
+  src: local('Khmer OS Siemreap'), url('/fonts/KhmerOSSiemreap.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+body.lang-kh {
+  /* Prefer Khmer OS Siemreap, then common Khmer system fonts, then the default UI font */
+  font-family: 'Khmer OS Siemreap', 'Noto Sans Khmer', 'Battambang', 'Moul', var(--font-family);
+}
+
 body {
   margin: 0;
   font-family: var(--font-family);
@@ -40,7 +57,8 @@ a:hover {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-family);
+  /* inherit from body so body.lang-kh applies Khmer font to headings */
+  font-family: inherit;
   font-weight: 700;
   margin-bottom: 0.6rem;
   letter-spacing: -0.02em;

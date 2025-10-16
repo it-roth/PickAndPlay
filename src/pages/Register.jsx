@@ -82,7 +82,11 @@ function Register() {
 
   return (
     <Container className="auth-page">
-      <Card>
+      <Card className="position-relative">
+        {/* back icon button top-left */}
+        <button type="button" className="back-icon-btn" onClick={() => navigate('/') } aria-label="Back to Home">
+          <i className="bi bi-arrow-left-circle-fill"></i>
+        </button>
         <Card.Header as="h4" className="text-center">Create an Account</Card.Header>
         <Card.Body>
           {error && (
@@ -173,9 +177,7 @@ function Register() {
             </p>
           </div>
         </Card.Body>
-        <div className="text-center ">
-          <Button className="back-home-button" variant="outline-primary" onClick={() => navigate('/')}>Back to Home</Button>
-        </div>
+
       </Card>
 
     </Container>

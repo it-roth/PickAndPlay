@@ -1,0 +1,78 @@
+/* Footer styles extracted from App.css */
+.footer-container {
+  margin-top: auto;
+}
+
+.footer-main {
+  background: linear-gradient(180deg, rgba(11, 34, 64, 0.98), rgba(11, 34, 64, 1));
+  color: white;
+  padding: 2rem 0 1rem;
+}
+
+.footer-bottom {
+  background-color:  #e25800;
+  color: rgb(255, 255, 255);
+}
+
+.footer-logo {
+  max-width: 120px;
+  height: auto;
+  margin-bottom: 1rem;
+}
+
+.footer-heading {
+  position: relative;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.footer-heading:after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 30px;
+  background-color: #ff7a00; /* orange accent */
+}
+
+.footer-heading {
+  color: #ff7a00; /* make footer headings orange */
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: 0.75rem;
+}
+
+.footer-links a {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.footer-links a:hover {
+  color:  #ff7a00;
+  padding-left: 5px;
+}
+
+.footer-social {
+  display: flex;
+  gap: 8px;
+}
+
+.social-icon {
+  color: rgba(255,255,255,0.8);
+  transition: color 0.2s ease;
+}
+
+.social-icon:hover {
+  color: #ff7a00;
+}

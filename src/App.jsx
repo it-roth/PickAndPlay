@@ -7,6 +7,7 @@ import './assets/styles/App.css';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 
 // Public Pages
 import Home from './pages/Home';
@@ -64,6 +65,8 @@ function App() {
   // Layout component allows us to read the current location (inside Router)
   function Layout() {
     const location = useLocation();
+    // Debug log to help trace routing issues when clicking links
+    console.debug('[src/App] Layout path:', location.pathname);
     // Hide Navbar/Footer for admin routes and auth pages (login/register)
     const isAdminPath = location.pathname.startsWith('/admin');
     const isAuthPage = location.pathname.startsWith('/login') || location.pathname.startsWith('/register');
@@ -130,6 +133,7 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <Layout />
     </Router>
   );

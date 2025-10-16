@@ -3,6 +3,8 @@ import { Container, Row, Col, Button, Image, Form, ListGroup, Card } from 'react
 import { Link, useNavigate } from 'react-router-dom';
 import { orderService } from '../lib/api';
 import { getImageUrl } from '../lib/utils';
+import { useContext } from 'react';
+import { LocaleContext } from '../contexts/LocaleContext';
 
 function Cart() {
   // Small image component to handle load/error gracefully
@@ -77,6 +79,8 @@ function Cart() {
       window.removeEventListener('cartUpdated', loadCart);
     };
   }, []);
+
+  const { currency, convertPrice, tProduct } = useContext(LocaleContext);
 
   const updateQuantity = (id, newQuantity) => {
     if (newQuantity < 1) return;
@@ -182,12 +186,12 @@ function Cart() {
                     </Col>
                     <Col xs={9} md={4}>
                       <h5 className="mb-1">
-                        <Link to={`/product/${item.id}`}>{item.name}</Link>
+                        <Link to={`/product/${item.id}`}>{tProduct(item, 'name') || item.name}</Link>
                       </h5>
                       <p className="text-muted mb-0">{item.brand}</p>
                     </Col>
                     <Col md={2} className="text-center">
-                      ${item.price.toFixed(2)}
+                      {new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(convertPrice(item.price))}
                     </Col>
                     <Col md={2}>
                       <div className="d-flex align-items-center">
@@ -211,7 +215,7 @@ function Cart() {
                     <Col md={2} className="text-end">
                       <div className="d-flex justify-content-between">
                         <span className="d-inline-block me-3">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          {new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(convertPrice(item.price * item.quantity))}
                         </span>
                         <Button
                           variant="link"

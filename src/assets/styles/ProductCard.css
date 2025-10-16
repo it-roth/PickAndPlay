@@ -590,6 +590,84 @@
   }
 }
 
+/* Mobile-only: wider cards and stack stock under price */
+@media (max-width: 576px) {
+  /* Allow product card wrapper to use more horizontal space in the grid */
+  .product-card-wrapper { padding: 0 2px; }
+
+  /* Make card take full width of its column and reduce inner padding to appear wider */
+  .product-card { width: 100%; margin: 0 auto; border-radius: 14px; }
+  .product-content { padding: 10px 10px 12px 10px; }
+
+  /* Stack price and stock vertically: price on top, stock below */
+  .product-price-section { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .price-wrapper { width: 100%; }
+  .stock-status { order: 2; width: 100%; display: flex; justify-content: flex-start; }
+  .stock-status.in-stock { background: #dff9ea; color: #065f46; padding: 6px 10px; border-radius: 8px; font-size: 12px; }
+
+  /* Slightly larger price for readability */
+  .current-price { font-size: 16px; }
+
+  /* Make action buttons a column for easier tapping */
+  .product-actions { flex-direction: column; align-items: stretch; }
+  .product-actions .btn-details { flex: 0 0 auto; }
+  .product-actions .btn-add-cart { flex: 0 0 auto; }
+}
+
+/* Extra mobile rescue rules (<=576px): ensure price and action area stay on top and are not overlapped */
+@media (max-width: 576px) {
+  .product-card {
+    overflow: visible; /* allow internal elements to flow if needed */
+    z-index: 0;
+  }
+
+  .product-content,
+  .product-price-section,
+  .product-actions {
+    position: relative;
+    z-index: 5; /* bring above decorative/floating elements */
+    background: transparent; /* keep visual appearance but allow stacking */
+  }
+
+  /* If a floating circle or badge overlaps the right side, make the price area have a white background strip to cover it */
+  .product-price-section {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.98));
+    padding: 8px 10px;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(2,6,23,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Keep action buttons fully visible and stacked, with a white backdrop so icons don't get obscured */
+  .product-actions {
+    margin-top: 8px;
+    padding: 6px 6px 10px 6px;
+    background: transparent;
+    gap: 8px;
+  }
+
+  .btn-add-cart, .btn-details { z-index: 6; }
+
+  /* Safeguard: hide any stray floating currency bubble if it exists (unknown class names) */
+  .currency-bubble, .price-float, .floating-currency, .price-chip { display: none !important; }
+}
+
+/* Make action buttons full-width and stacked on mobile for easy tapping */
+@media (max-width: 576px) {
+  .product-actions { display: flex; flex-direction: column; align-items: stretch; }
+  .product-actions .btn-details, .product-actions .btn-add-cart {
+    width: 100% !important;
+    display: inline-flex;
+    justify-content: center;
+    padding: 10px 12px !important;
+    height: auto !important;
+    border-radius: 10px;
+  }
+  .product-card { margin-bottom: 12px; }
+}
+
 /* Tighter card styling for very small screens (3-up layout) */
 @media (max-width: 420px) {
   .product-image-container {

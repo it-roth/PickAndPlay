@@ -13,10 +13,13 @@ import { Navbar, Footer, ProtectedRoute, AdminLayout } from '../components';
 import Home from '../pages/Home';
 import Shop from '../pages/Shop';
 import ProductDetails from '../pages/ProductDetails';
+import Categories from '../pages/Categories';
+import Contact from '../pages/Contact';
 import Cart from '../pages/Cart';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
 import About from '../pages/About';
+import ScrollToTop from '../components/ScrollToTop';
 import OrderConfirmation from '../pages/OrderConfirmation';
 
 // Admin Pages
@@ -36,7 +39,12 @@ function App() {
 
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
+        {/* Auth pages - render without Navbar/Footer */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
         {/* Public routes with navbar and footer */}
         <Route path="/*" element={
           <div className="d-flex flex-column min-vh-100 position-relative">
@@ -45,12 +53,13 @@ function App() {
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/shop" element={<Shop />} />
+                <Route path="/categories" element={<Categories />} />
+                <Route path="/categories/:name" element={<Categories />} />
                 <Route path="/category/:categoryName" element={<Shop />} />
                 <Route path="/product/:id" element={<ProductDetails />} />
                 <Route path="/cart" element={<Cart />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
                 <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
                 <Route path="/order-confirmation" element={<OrderConfirmation />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
@@ -58,7 +67,7 @@ function App() {
             <Footer />
           </div>
         } />
-        
+
         {/* Admin routes with AdminLayout (no navbar/footer) */}
         <Route path="/admin/*" element={
           <ProtectedRoute adminOnly={true}>

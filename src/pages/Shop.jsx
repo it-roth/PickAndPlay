@@ -3,6 +3,8 @@ import { useParams, useLocation } from 'react-router-dom';
 import { Container, Row, Col, Form, Button, Card, Pagination } from 'react-bootstrap';
 import { productService } from '../lib/api';
 import ProductCard from '../components/ProductCard';
+import { useContext } from 'react';
+import { LocaleContext } from '../contexts/LocaleContext';
 
 function Shop() {
   const { categoryName } = useParams();
@@ -20,6 +22,8 @@ function Shop() {
     // default to newest so last/most-recent products show first
     sortBy: 'newest',
   });
+
+  const { t } = useContext(LocaleContext);
 
   // Map URL category names to actual category values
   const categoryMap = {
@@ -197,29 +201,29 @@ function Shop() {
         <Col md={3}>
           <Card className="mb-4">
             <Card.Header>
-              <h5 className="mb-0">Filters</h5>
+              <h5 className="mb-0">{t('filters_title')}</h5>
             </Card.Header>
             <Card.Body>
               <Form>
                 <Form.Group className="mb-3">
-                  <Form.Label>Search</Form.Label>
+                  <Form.Label>{t('search_label')}</Form.Label>
                   <Form.Control
                     type="text"
                     name="search"
                     value={filters.search}
                     onChange={handleFilterChange}
-                    placeholder="Search guitars..."
+                    placeholder={t('search_placeholder')}
                   />
                 </Form.Group>
                 
                 <Form.Group className="mb-3">
-                  <Form.Label>Category</Form.Label>
+                  <Form.Label>{t('category')}</Form.Label>
                   <Form.Select
                     name="category"
                     value={filters.category}
                     onChange={handleFilterChange}
                   >
-                    <option value="">All Categories</option>
+                    <option value="">{t('all_categories')}</option>
                     {categories.map(category => (
                       <option key={category} value={category}>{category}</option>
                     ))}
@@ -227,7 +231,7 @@ function Shop() {
                 </Form.Group>
                 
                 <Form.Group className="mb-3">
-                  <Form.Label>Price Range</Form.Label>
+                  <Form.Label>{t('price_range')}</Form.Label>
                   <Row>
                     <Col>
                       <Form.Control
@@ -235,7 +239,7 @@ function Shop() {
                         name="minPrice"
                         value={filters.minPrice}
                         onChange={handleFilterChange}
-                        placeholder="Min"
+                        placeholder={t('min')}
                         min="0"
                       />
                     </Col>
@@ -245,7 +249,7 @@ function Shop() {
                         name="maxPrice"
                         value={filters.maxPrice}
                         onChange={handleFilterChange}
-                        placeholder="Max"
+                        placeholder={t('max')}
                         min="0"
                       />
                     </Col>
@@ -253,13 +257,13 @@ function Shop() {
                 </Form.Group>
                 
                 <Form.Group className="mb-3">
-                  <Form.Label>Brand</Form.Label>
+                  <Form.Label>{t('brand')}</Form.Label>
                   <Form.Select
                     name="brand"
                     value={filters.brand}
                     onChange={handleFilterChange}
                   >
-                    <option value="">All Brands</option>
+                    <option value="">{t('all_brands')}</option>
                     {brands.map(brand => (
                       <option key={brand} value={brand}>{brand}</option>
                     ))}
@@ -267,15 +271,15 @@ function Shop() {
                 </Form.Group>
                 
                 <Form.Group className="mb-3">
-                  <Form.Label>Sort By</Form.Label>
+                  <Form.Label>{t('sort_by')}</Form.Label>
                   <Form.Select
                     name="sortBy"
                     value={filters.sortBy}
                     onChange={handleFilterChange}
                   >
-                    <option value="name">Name (A-Z)</option>
-                    <option value="priceAsc">Price (Low to High)</option>
-                    <option value="priceDesc">Price (High to Low)</option>
+                    <option value="name">{t('sort_name')}</option>
+                    <option value="priceAsc">{t('sort_price_asc')}</option>
+                    <option value="priceDesc">{t('sort_price_desc')}</option>
                   </Form.Select>
                 </Form.Group>
                 
@@ -285,7 +289,7 @@ function Shop() {
                   className="w-100"
                   onClick={resetFilters}
                 >
-                  Reset Filters
+                  {t('reset_filters')}
                 </Button>
               </Form>
             </Card.Body>
@@ -296,7 +300,7 @@ function Shop() {
         <Col md={9}>
           {isLoading ? (
             <div className="text-center py-5">
-              <p>Loading products...</p>
+              <p>{t('loading_products')}</p>
             </div>
           ) : (
             <>
@@ -308,8 +312,8 @@ function Shop() {
               
               {pagedProducts.length === 0 ? (
                 <div className="text-center py-5">
-                  <p>No products found matching your criteria.</p>
-                  <Button onClick={resetFilters} variant="outline-primary">Reset Filters</Button>
+                  <p>{t('no_products')}</p>
+                  <Button onClick={resetFilters} variant="outline-primary">{t('reset_filters')}</Button>
                 </div>
               ) : (
                 <>

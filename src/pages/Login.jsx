@@ -86,7 +86,11 @@ function Login() {
 
   return (
     <Container className="shop-page-container auth-page">
-      <Card>
+      <Card className="position-relative">
+        {/* back icon button top-left */}
+        <button type="button" className="back-icon-btn" onClick={() => navigate('/') } aria-label="Back to Home">
+          <i className="bi bi-arrow-left-circle-fill"></i>
+        </button>
         <Card.Header as="h4" className="text-center">Login</Card.Header>
         <Card.Body>
           {error && <Alert variant="danger">{error}</Alert>}
@@ -115,10 +119,6 @@ function Login() {
 
           <div className="text-center">
             <p>Don't have an account? <Link to="/register">Register</Link></p>
-          </div>
-
-          <div className="text-center mt-3">
-            <Button className="back-home-button" variant="outline-primary" onClick={() => navigate('/')}>Back to Home</Button>
           </div>
         </Card.Body>
       </Card>

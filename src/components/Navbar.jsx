@@ -1,15 +1,27 @@
-import { useEffect, useState } from 'react';
-import { Navbar as BootstrapNavbar, Nav, Container, Button, Form, InputGroup, Dropdown } from 'react-bootstrap';
+import { useEffect, useState, useRef, useContext } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../lib/api';
 import logoImage from '../assets/images/Logo.png';
+const CAM_URL = new URL('../assets/images/Flag_of_Cambodia.webp', import.meta.url).href;
+const US_URL = new URL('../assets/images/Flag_of_the_United_Kingdom.webp', import.meta.url).href;
+const CN_URL = new URL('../assets/images/Flag_of_China.png', import.meta.url).href;
+import { getImageUrl } from '../lib/utils';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import '../assets/styles/navbar-fixes.css';
+import '../assets/styles/navbar.css';
+import { LocaleContext } from '../contexts/LocaleContext';
+
 
 function Navbar() {
   const [user, setUser] = useState(null);
   const [cartCount, setCartCount] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const [anchorRight, setAnchorRight] = useState(false);
+  const { lang, setLanguage: localeSetLanguage, t } = useContext(LocaleContext);
+  
+  const [userOpen, setUserOpen] = useState(false);
+  const langCloseTimer = useRef(null);
+  const langButtonRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -50,173 +62,279 @@ function Navbar() {
     };
   }, []);
 
+  useEffect(() => {
+    // No explicit hover-detection here — we'll call hover handlers directly.
+    return () => {
+      if (langCloseTimer.current) {
+        clearTimeout(langCloseTimer.current);
+        langCloseTimer.current = null;
+      }
+    }
+  }, []);
+
+  // Decide whether to hide the navbar (render null) — do this after hooks so rules of hooks are preserved
+  const hideOnAuth = location.pathname === '/login' || location.pathname === '/register';
+  if (hideOnAuth) return null;
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
     setUser(null);
     navigate('/');
   };
+  const handleLangToggle = () => {
+    // toggle for touch devices; cancel any pending close timer when opening
+    if (!langOpen && langCloseTimer.current) {
+      clearTimeout(langCloseTimer.current);
+      langCloseTimer.current = null;
+    }
+    // when opening, decide anchor side
+    if (!langOpen) {
+      try {
+        const btn = langButtonRef.current?.getBoundingClientRect();
+        const spaceRight = window.innerWidth - (btn?.right || 0);
+        // if less than 220px on the right, anchor to the right
+        setAnchorRight(spaceRight < 220);
+      } catch (e) { setAnchorRight(false); }
+    }
+    setLangOpen(!langOpen);
+    setUserOpen(false);
+  };
+
+  // Sync language selection via LocaleContext
+  const setLanguage = (value) => {
+    localeSetLanguage(value);
+    setLangOpen(false);
+  };
+
+  // Hover helpers with a small delay so fast pointer moves into menu don't close it
+  const openLangMenu = () => {
+    if (langCloseTimer.current) {
+      clearTimeout(langCloseTimer.current);
+      langCloseTimer.current = null;
+    }
+    // decide anchor side when opened via hover
+    try {
+      const btn = langButtonRef.current?.getBoundingClientRect();
+      const spaceRight = window.innerWidth - (btn?.right || 0);
+      setAnchorRight(spaceRight < 220);
+    } catch (e) { setAnchorRight(false); }
+    setLangOpen(true);
+    setUserOpen(false);
+  };
+
+  const scheduleCloseLangMenu = (delay = 180) => {
+    if (langCloseTimer.current) clearTimeout(langCloseTimer.current);
+    langCloseTimer.current = setTimeout(() => {
+      setLangOpen(false);
+      langCloseTimer.current = null;
+    }, delay);
+  };
+
+  // user toggle handled inline where needed
 
   return (
     <div className="navbar-wrapper">
       {/* Black Friday Banner */}
       <div className="black-friday-banner">
-        <Container fluid className="d-flex justify-content-between align-items-center py-1 py-sm-2">
-          <div className="banner-text">Black Friday</div>
+        <div className="container-fluid d-flex justify-content-between align-items-center py-1 py-sm-2">
+          <div className="banner-text">{t('blackFriday')}</div>
           <div className="banner-discount">69% OFF</div>
-          <Button variant="dark" className="shop-now-btn shop-now-btn-custom">
-            <span className="d-none d-sm-inline">Shop Now </span>
-            <span className="d-sm-none">SHOP</span>
-            <i className="bi bi-arrow-right ms-1 shop-now-icon"></i>
-          </Button>
-        </Container>
+          <button
+            type="button"
+            className="btn btn-dark shop-now-btn shop-now-btn-custom"
+            onClick={() => { setExpanded(false); navigate('/shop'); }}
+          >
+            <span className="d-none d-sm-inline">{t('shopNow')} </span>
+            <span className="d-sm-none">{t('shopNow').toUpperCase()}</span>
+          </button>
+        </div>
       </div>
-      
-      {/* Top bar */}
-      <div className="topbar">
-        <Container fluid className="d-flex justify-content-between align-items-center py-2">
-          <div className="welcome-text">
-            Welcome to Pick & Play
-          </div>
-          <div className="d-flex align-items-center">
-            <div className="social-icons me-2">
-              <span>Follow us:</span>
-              <a href="#" className="mx-1"><i className="bi bi-facebook"></i></a>
-              <a href="#" className="mx-1"><i className="bi bi-instagram"></i></a>
-              <a href="#" className="mx-1"><i className="bi bi-youtube"></i></a>
-            </div>
-            <div className="language-selector ms-2">
-              <Dropdown className="d-inline">
-                <Dropdown.Toggle variant="success" size="sm" className="language-dropdown no-caret">
-                  <span className="d-none d-sm-inline">Eng</span>
-                  <span className="d-sm-none">EN</span>
-                  <i className="bi bi-chevron-down small ms-1"></i>
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                  <Dropdown.Item href="#">English</Dropdown.Item>
-                  <Dropdown.Item href="#">Spanish</Dropdown.Item>
-                  <Dropdown.Item href="#">French</Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
-              <Dropdown className="d-inline ms-1">
-                <Dropdown.Toggle variant="success" size="sm" className="currency-dropdown no-caret">
-                  <span className="d-none d-sm-inline">USD</span>
-                  <span className="d-sm-none">$</span>
-                  <i className="bi bi-chevron-down small ms-1"></i>
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                  <Dropdown.Item href="#">USD</Dropdown.Item>
-                  <Dropdown.Item href="#">EUR</Dropdown.Item>
-                  <Dropdown.Item href="#">GBP</Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
-            </div>
-          </div>
-        </Container>
-      </div>
-      
+
       {/* Main Navbar */}
-      <BootstrapNavbar expanded={expanded} expand="lg" className="main-navbar navbar-modern py-2">
-        <Container fluid>
+      <nav className={`navbar navbar-expand-lg main-navbar navbar-modern py-2`}>
+        <div className="container-fluid">
           {/* Logo */}
-          <BootstrapNavbar.Brand as={Link} to="/" className="logo-container" onClick={() => setExpanded(false)}>
+          <Link to="/" className="navbar-brand logo-container" onClick={() => setExpanded(false)}>
             <img src={logoImage} alt="Pick & Play" className="brand-logo" />
-          </BootstrapNavbar.Brand>
-          
-          {/* Search bar - desktop only */}
-          <div className="search-container d-none d-lg-block">
-            <Form className="navbar-search-form">
-              <InputGroup>
-                <Form.Control
-                  placeholder="Search products..."
-                  className="navbar-search-input"
-                />
-                <Button variant="dark" className="navbar-search-button search-btn-dark">
-                  <i className="bi bi-search"></i>
-                </Button>
-              </InputGroup>
-            </Form>
+          </Link>
+          {/* Desktop Navigation */}
+          <div className="desktop-nav-container d-none d-lg-block">
+            <div className="container-fluid">
+              {/* Main Navigation */}
+              <div className="main-menu">
+                <Link to="/" className={`main-nav-link ${isActive("/")}`}>{t('home')}</Link>
+                <Link to="/shop" className={`main-nav-link ${isActive("/shop")}`}>{t('shop')}</Link>
+                <Link to="/about" className={`main-nav-link ${isActive("/about")}`}>{t('about')}</Link>
+                <Link to="/contact" className={`main-nav-link ${isActive("/contact")}`}>{t('contact')}</Link>
+              </div>
+            </div>
           </div>
-          
+
+
           {/* Icons section */}
           <div className="nav-icons d-flex align-items-center">
             {/* Cart icon with count */}
             <Link to="/cart" className="nav-icon-link position-relative">
-              <i className="bi bi-cart3"></i>
+                <i className="bi bi-cart3"></i>
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </Link>
-            
-            
+            <div className="language-selector ms-2 d-flex">
+              <div className="dropdown d-inline" onMouseEnter={openLangMenu} onMouseLeave={() => scheduleCloseLangMenu()}>
+                <button
+                  type="button"
+                  ref={langButtonRef}
+                  className="btn btn-sm language-dropdown language-flag-only no-caret"
+                  onClick={handleLangToggle}
+                  aria-expanded={langOpen}
+                  aria-haspopup="true"
+                  aria-label={lang === 'EN' ? 'English' : lang === 'KH' ? 'Khmer' : 'Chinese'}
+                >
+                  <img
+                    src={lang === 'EN' ? US_URL : (lang === 'KH' ? CAM_URL : CN_URL)}
+                    alt={lang}
+                    className="lang-flag"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const emoji = e.currentTarget.nextElementSibling;
+                      if (emoji) emoji.style.display = 'inline-block';
+                    }}
+                  />
+                  <span className="lang-emoji" style={{ display: 'none' }}>{lang === 'EN' ? '🇺🇸' : lang === 'KH' ? '🇰🇭' : '🇨🇳'}</span>
+                </button>
+                <ul className={`dropdown-menu language-menu${langOpen ? ' show' : ''}${anchorRight ? ' anchor-right' : ''}`} onMouseEnter={openLangMenu} onMouseLeave={() => scheduleCloseLangMenu()}>
+                  <li>
+                    <button
+                      type="button"
+                      className="dropdown-item"
+                      onClick={() => setLanguage('KH')}
+                    >
+                      <img
+                        src={CAM_URL}
+                        alt="KH"
+                        className="lang-flag"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; const em = e.currentTarget.nextElementSibling; if (em) em.style.display = 'inline-block'; }}
+                      />
+                      <span className="lang-emoji" style={{ display: 'none' }}>🇰🇭</span>
+                      ខ្មែរ (Khmer)
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      className="dropdown-item"
+                      onClick={() => setLanguage('EN')}
+                    >
+                      <img
+                        src={US_URL}
+                        alt="EN"
+                        className="lang-flag"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; const em = e.currentTarget.nextElementSibling; if (em) em.style.display = 'inline-block'; }}
+                      />
+                      <span className="lang-emoji" style={{ display: 'none' }}>🇺🇸</span>
+                      English
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      className="dropdown-item"
+                      onClick={() => setLanguage('ZH')}
+                    >
+                      <img
+                        src={CN_URL}
+                        alt="ZH"
+                        className="lang-flag"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; const em = e.currentTarget.nextElementSibling; if (em) em.style.display = 'inline-block'; }}
+                      />
+                      <span className="lang-emoji" style={{ display: 'none' }}>🇨🇳</span>
+                      中文 (Chinese)
+                    </button>
+                  </li>
+                </ul>
+              </div>
+              
+            </div>
+
+
+
             {/* User menu - Customer only */}
             {user ? (
-              <div className="user-menu d-flex">
-                <Link to="/profile" className="nav-icon-link">
-                  <i className="bi bi-person-circle"></i>
-                </Link>
-                <Button variant="link" className="nav-icon-link p-0" onClick={handleLogout}>
-                  <i className="bi bi-box-arrow-right"></i>
-                </Button>
+              <div className="dropdown d-inline user-dropdown">
+                <button
+                  type="button"
+                  className="btn btn-link p-0 d-flex align-items-center nav-icon-link user-toggle"
+                  onClick={() => { setUserOpen(!userOpen); setExpanded(false); }}
+                >
+                  {(() => {
+                    const avatar = getImageUrl(user?.avatar ? [user.avatar] : (user?.images || []));
+                    if (avatar) {
+                      return <img src={avatar} alt={user?.name || 'User'} className="user-avatar rounded-circle" style={{ width: 36, height: 36, objectFit: 'cover' }} />;
+                    }
+                    // Fallback initials
+                    const name = user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+                    const initials = (name || 'U').split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase();
+                    return (
+                      <div className="user-avatar-placeholder rounded-circle d-flex align-items-center justify-content-center bg-primary text-white" style={{ width: 36, height: 36, fontSize: 14 }}>
+                        {initials}
+                      </div>
+                    );
+                  })()}
+                </button>
+
+                <ul className={`dropdown-menu${userOpen ? ' show' : ''} dropdown-menu-end`}>
+                  <li><Link className="dropdown-item" to="/profile" onClick={() => { setExpanded(false); setUserOpen(false); }}>Profile</Link></li>
+                  <li><Link className="dropdown-item" to="/orders" onClick={() => { setExpanded(false); setUserOpen(false); }}>Orders</Link></li>
+                  {(user?.role && String(user.role).toLowerCase().includes('admin')) || (Array.isArray(user?.roles) && user.roles.some(r => String(r).toLowerCase().includes('admin'))) ? (
+                    <li><Link className="dropdown-item" to="/admin/dashboard" onClick={() => { setExpanded(false); setUserOpen(false); }}>Admin</Link></li>
+                  ) : null}
+                  <li><hr className="dropdown-divider" /></li>
+                  <li><button className="dropdown-item" onClick={() => { handleLogout(); setExpanded(false); setUserOpen(false); }}>Logout</button></li>
+                </ul>
               </div>
             ) : (
-              <>
-                <Link to="/login" className="nav-icon-link">Login</Link>
-                <Link to="/register" className="nav-icon-link d-none d-sm-inline-block">Register</Link>
-              </>
+              <div className="auth-links d-flex align-items-center">
+                <Link to="/login" className="auth-link auth-link-cta d-none d-sm-inline-block ms-2" onClick={() => setExpanded(false)}>{t('signIn')}</Link>
+              </div>
             )}
           </div>
-          
+
           {/* Mobile menu toggle */}
-          <BootstrapNavbar.Toggle 
-            aria-controls="main-navbar-nav" 
-            onClick={() => setExpanded(expanded ? false : "expanded")} 
-          />
-          
+          <button
+            className="navbar-toggler"
+            type="button"
+            aria-controls="main-navbar-nav"
+            aria-expanded={expanded ? 'true' : 'false'}
+            aria-label="Toggle navigation"
+            onClick={() => setExpanded(expanded ? false : true)}
+          >
+            <span className="navbar-toggler-icon"></span>
+          </button>
+
           {/* Mobile menu */}
-          <BootstrapNavbar.Collapse id="main-navbar-nav">
-            {/* Search bar - mobile only */}
-            <Form className="navbar-search-form d-lg-none mt-3 mb-2">
-              <InputGroup>
-                <Form.Control
-                  placeholder="Search products..."
-                  className="navbar-search-input"
-                />
-                <Button variant="dark" className="navbar-search-button search-btn-dark">
-                  <i className="bi bi-search"></i>
-                </Button>
-              </InputGroup>
-            </Form>
-            
+          <div className={`collapse navbar-collapse${expanded ? ' show' : ''}`} id="main-navbar-nav">
             {/* Mobile navigation links */}
-            <Nav className="mobile-nav d-block d-lg-none">
-              <Nav.Link as={Link} to="/" className={`mobile-nav-link ${isActive("/")}`} onClick={() => setExpanded(false)}>
-                Home
-              </Nav.Link>
-              <Nav.Link as={Link} to="/shop" className={`mobile-nav-link ${isActive("/shop")}`} onClick={() => setExpanded(false)}>
-                Shop
-              </Nav.Link>
-              <Nav.Link as={Link} to="/about" className={`mobile-nav-link ${isActive("/about")}`} onClick={() => setExpanded(false)}>
-                About Us
-              </Nav.Link>
-              <Nav.Link as={Link} to="/contact" className={`mobile-nav-link ${isActive("/contact")}`} onClick={() => setExpanded(false)}>
-                Contact Us
-              </Nav.Link>
-            </Nav>
-          </BootstrapNavbar.Collapse>
-        </Container>
-      </BootstrapNavbar>
-      
-      {/* Desktop Navigation */}
-      <div className="desktop-nav-container d-none d-lg-block">
-        <Container fluid>
-          {/* Main Navigation */}
-          <Nav className="main-menu">
-            <Nav.Link as={Link} to="/" className={`main-nav-link ${isActive("/")}`}>HOME</Nav.Link>
-            <Nav.Link as={Link} to="/shop" className={`main-nav-link ${isActive("/shop")}`}>SHOP</Nav.Link>
-            <Nav.Link as={Link} to="/about" className={`main-nav-link ${isActive("/about")}`}>ABOUT US</Nav.Link>
-            <Nav.Link as={Link} to="/contact" className={`main-nav-link ${isActive("/contact")}`}>CONTACT US</Nav.Link>
-          </Nav>
-        </Container>
-      </div>
+            <div className="mobile-nav d-block d-lg-none">
+              <Link to="/" className={`mobile-nav-link ${isActive("/")}`} onClick={() => setExpanded(false)}>
+                {t('home')}
+              </Link>
+              <Link to="/shop" className={`mobile-nav-link ${isActive("/shop")}`} onClick={() => setExpanded(false)}>
+                {t('shop')}
+              </Link>
+              <Link to="/about" className={`mobile-nav-link ${isActive("/about")}`} onClick={() => setExpanded(false)}>
+                {t('about')}
+              </Link>
+              <Link to="/contact" className={`mobile-nav-link ${isActive("/contact")}`} onClick={() => setExpanded(false)}>
+                {t('contact')}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+
+
+
     </div>
   );
 }
