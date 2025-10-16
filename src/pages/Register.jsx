@@ -14,13 +14,11 @@ function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-<<<<<<< HEAD
   
   const handleInputChange = (e) => {xz
-=======
 
   const handleInputChange = (e) => {
->>>>>>> origin/main
+
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -188,5 +186,5 @@ function Register() {
     </Container>
   );
 }
-
+}
 export default Register;

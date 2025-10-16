@@ -1,12 +1,11 @@
 import React from 'react';
 import { Container, Row, Col, Card, Image } from 'react-bootstrap';
-import { StarFill, PeopleFill, MusicNoteBeamed, EnvelopeFill } from 'react-bootstrap-icons';
+import { StarFill, PeopleFill, MusicNoteBeamed } from 'react-bootstrap-icons';
 import guitarTeam1 from '../assets/images/team/team-member1.jpg';
 import guitarTeam2 from '../assets/images/team/team-member2.jpg';
 import guitarTeam3 from '../assets/images/team/team-member3.jpg';
 
 function About() {
-  // Team members data
   const teamMembers = [
     {
       id: 1,
@@ -24,58 +23,118 @@ function About() {
     },
     {
       id: 3,
-      name: "Michael Chen",
+      name: "Panha",
       role: "Project Manager",
-      bio: "Michael coordinates all aspects of the project and ensures that we deliver quality products on schedule.",
+      bio: "Panha coordinates all aspects of the project and ensures that we deliver quality products on schedule.",
       image: guitarTeam3
     }
   ];
 
   return (
     <div className="about-page-container">
-      {/* Hero section */}
-      <div className="hero-section">
-        <div className="hero-bg"></div>
-        <Container className="py-5">
-          <Row className="justify-content-center text-center">
+      <div className="hero-section position-relative text-center text-white" style={{
+        backgroundImage: "url('../assets/images/hero-guitar.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        minHeight: "400px",
+        display: "flex",
+        alignItems: "center"
+      }}>
+        <div style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          backgroundColor: "rgba(0,0,0,0.5)" // semi-transparent overlay
+        }}></div>
+
+        <Container style={{ position: "relative", zIndex: 1 }}>
+          <Row className="justify-content-center">
             <Col lg={8}>
-              <h1 className="display-4 fw-bold text-white">About Pick & Play</h1>
-              <p className="fs-5 text-white">Quality Guitars for Musicians at Every Level</p>
+              <h1 className="display-4 fw-bold">About Pick & Play</h1>
+              <p className="fs-5 mb-4">Quality Guitars for Musicians at Every Level</p>
+              <a href="/shop" className="btn btn-warning btn-lg">
+                Explore Guitars
+              </a>
             </Col>
           </Row>
         </Container>
-        <div className="wave-separator"></div>
       </div>
 
-      {/* Introduction section */}
-      <section className="py-5">
+
+      {/* Our Story */}
+      <section className="our-story-section">
         <Container>
           <Row className="justify-content-center">
             <Col lg={10} className="text-center mb-5">
               <h2 className="section-title">Our Story</h2>
               <div className="section-underline"></div>
               <p className="fs-5 mb-4">
-                Pick & Play was founded in 2020 with a simple mission: to provide high-quality guitars 
-                and accessories to musicians of all skill levels at fair prices. What started as a small 
-                passion project has grown into a comprehensive online destination for guitar enthusiasts.
+                Founded in 2020 by passionate musicians,{" "}
+                <strong>Pick & Play</strong> was born from a simple idea: to
+                make high-quality guitars accessible to everyone, from beginners
+                to seasoned professionals.
               </p>
               <p className="fs-5 mb-4">
-                We believe that everyone deserves access to quality instruments that inspire creativity 
-                and musical growth. Our team of dedicated musicians and experts carefully selects each 
-                product in our inventory, ensuring that we offer only the best to our customers.
+                What started as a small passion project has grown into a trusted
+                destination for guitar enthusiasts worldwide. Our team carefully
+                curates every instrument, ensuring it meets the highest
+                standards of playability, tone, and durability.
               </p>
-              <p className="fs-5 mb-4">
-                Whether you're just starting your musical journey or are a seasoned professional, 
-                Pick & Play is committed to helping you find the perfect instrument and accessories 
-                to express yourself through music.
-              </p>
+              <Row className="text-start mt-4">
+                <Col md={4} className="mb-3">
+                  <h5 className="fw-bold" style={{ color: "#fd7e14" }}>
+                    Milestones
+                  </h5>
+                  <ul className="fs-6">
+                    <li>
+                      2020: Pick & Play founded with the mission to deliver
+                      quality guitars.
+                    </li>
+                    <li>2022: Over 10,000 satisfied customers worldwide.</li>
+                    <li>
+                      2023: Partnered with local music schools to support
+                      aspiring musicians.
+                    </li>
+                  </ul>
+                </Col>
+                <Col md={4} className="mb-3">
+                  <h5 className="fw-bold" style={{ color: "#fd7e14" }}>
+                    Our Promise
+                  </h5>
+                  <ul className="fs-6">
+                    <li>
+                      Quality instruments selected with care and expertise.
+                    </li>
+                    <li>
+                      Exceptional customer service to guide your musical
+                      journey.
+                    </li>
+                    <li>
+                      Community-driven events and workshops to connect
+                      musicians.
+                    </li>
+                  </ul>
+                </Col>
+                <Col md={4} className="mb-3">
+                  <h5 className="fw-bold" style={{ color: "#fd7e14" }}>
+                    Vision
+                  </h5>
+                  <p className="fs-6">
+                    To inspire creativity and empower musicians everywhere by
+                    providing the perfect tools to express themselves through
+                    music. Join us in making music accessible to all.
+                  </p>
+                </Col>
+              </Row>
             </Col>
           </Row>
         </Container>
       </section>
 
-      {/* Team section */}
-      <section className="py-5" style={{ backgroundColor: '#f8f9fa' }}>
+      {/* Team Section */}
+      <section className="py-5" style={{ backgroundColor: "#f8f9fa" }}>
         <Container>
           <Row className="text-center mb-5">
             <Col>
@@ -84,31 +143,49 @@ function About() {
               <p className="lead">The passionate people behind Pick & Play</p>
             </Col>
           </Row>
-          
           <Row>
-            {teamMembers.map(member => (
+            {teamMembers.map((member) => (
               <Col md={4} key={member.id}>
-                <Card className="h-100 border-0 shadow mb-4 p-3" style={{ transition: 'all 0.3s ease' }} onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-10px)'} onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+                <Card
+                  className="h-100 border-0 shadow mb-4 p-3"
+                  style={{ transition: "all 0.3s ease" }}
+                  onMouseOver={(e) =>
+                    (e.currentTarget.style.transform = "translateY(-10px)")
+                  }
+                  onMouseOut={(e) =>
+                    (e.currentTarget.style.transform = "translateY(0)")
+                  }
+                >
                   <div className="text-center p-3">
-                    <Image 
-                      src={member.image} 
+                    <Image
+                      src={member.image}
                       alt={member.name}
-                      className="team-member-image rounded-circle img-thumbnail" 
-                      style={{ 
-                        width: '180px', 
-                        height: '180px', 
-                        objectFit: 'cover', 
-                        objectPosition: 'center top',
-                        borderWidth: '3px',
-                        borderColor: '#198754',
-                        boxShadow: '0 5px 15px rgba(0, 0, 0, 0.1)',
-                        animation: 'pulse-border 2s infinite'
+                      className="team-member-image rounded-circle img-thumbnail"
+                      style={{
+                        width: "180px",
+                        height: "180px",
+                        objectFit: "cover",
+                        objectPosition: "center top",
+                        borderWidth: "3px",
+                        borderColor: "#198754",
+                        boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)",
+                        animation: "pulse-border 2s infinite",
                       }}
                     />
                   </div>
                   <Card.Body className="text-center pt-3">
-                    <Card.Title className="h4 fw-bold" style={{ color: '#fd7e14' }}>{member.name}</Card.Title>
-                    <Card.Subtitle className="mb-3 fw-semibold" style={{ color: '#198754' }}>{member.role}</Card.Subtitle>
+                    <Card.Title
+                      className="h4 fw-bold"
+                      style={{ color: "#fd7e14" }}
+                    >
+                      {member.name}
+                    </Card.Title>
+                    <Card.Subtitle
+                      className="mb-3 fw-semibold"
+                      style={{ color: "#198754" }}
+                    >
+                      {member.role}
+                    </Card.Subtitle>
                     <Card.Text className="text-muted">{member.bio}</Card.Text>
                   </Card.Body>
                 </Card>
@@ -118,7 +195,7 @@ function About() {
         </Container>
       </section>
 
-      {/* Values section */}
+      {/* Values Section */}
       <section className="py-5 mb-0">
         <Container>
           <Row className="text-center mb-5">
@@ -127,48 +204,86 @@ function About() {
               <div className="section-underline"></div>
             </Col>
           </Row>
-          
           <Row className="justify-content-center">
             <Col lg={4} md={6} className="mb-4">
-              <div className="value-card" onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-10px)'} onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+              <div
+                className="value-card"
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.transform = "translateY(-10px)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.transform = "translateY(0)")
+                }
+              >
                 <div className="value-icon">
                   <StarFill size={40} />
                 </div>
                 <h3 className="value-title">Quality</h3>
-                <p>We never compromise on the quality of our products. Every guitar is carefully selected and inspected to ensure the best performance.</p>
+                <p>
+                  We never compromise on the quality of our products. Every
+                  guitar is carefully selected and inspected to ensure the best
+                  performance.
+                </p>
               </div>
             </Col>
             <Col lg={4} md={6} className="mb-4">
-              <div className="value-card" onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-10px)'} onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+              <div
+                className="value-card"
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.transform = "translateY(-10px)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.transform = "translateY(0)")
+                }
+              >
                 <div className="value-icon">
                   <PeopleFill size={40} />
                 </div>
                 <h3 className="value-title">Community</h3>
-                <p>Building a community of passionate musicians through events, workshops, and online forums to share our love for music.</p>
+                <p>
+                  Building a community of passionate musicians through events,
+                  workshops, and online forums to share our love for music.
+                </p>
               </div>
             </Col>
             <Col lg={4} md={6} className="mb-4">
-              <div className="value-card" onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-10px)'} onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+              <div
+                className="value-card"
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.transform = "translateY(-10px)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.transform = "translateY(0)")
+                }
+              >
                 <div className="value-icon">
                   <MusicNoteBeamed size={40} />
                 </div>
                 <h3 className="value-title">Passion</h3>
-                <p>Our love for music drives everything we do. We're not just selling instruments; we're sharing our passion for creating beautiful sounds.</p>
+                <p>
+                  Our love for music drives everything we do. We're not just
+                  selling instruments; we're sharing our passion for creating
+                  beautiful sounds.
+                </p>
               </div>
             </Col>
           </Row>
         </Container>
       </section>
 
-      {/* Contact CTA section */}
-      <section className="contact-cta-section">
+      {/* Contact CTA */}
+      <section className="contact-cta-section mb-4">
         <Container>
           <Row className="justify-content-center">
             <Col lg={8} className="text-center">
               <h2 className="cta-title">Ready to find your perfect guitar?</h2>
-              <p className="cta-text">Our team is here to help you choose the right instrument for your musical journey.</p>
+              <p className="cta-text">
+                Our team is here to help you choose the right instrument for
+                your musical journey.
+              </p>
               <a href="/shop" className="cta-button">
-                <MusicNoteBeamed className="me-2" />Shop Now
+                <MusicNoteBeamed className="me-2" />
+                Shop Now
               </a>
             </Col>
           </Row>
