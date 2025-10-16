@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Button, Image, Form, InputGroup, Badge } from 'react-bootstrap';
 import { productService } from '../lib/api';
 import { getImageUrl } from '../lib/utils';
+import { useContext } from 'react';
+import { LocaleContext } from '../contexts/LocaleContext';
 
 function ProductDetails() {
   const { id } = useParams();
@@ -57,6 +59,10 @@ function ProductDetails() {
 
   const stockQty = Number(product.stockQuantity ?? product.quantity ?? product.stock ?? product.count ?? 0);
   const inStock = (typeof product.inStock === 'boolean') ? product.inStock : (stockQty > 0);
+  const { currency, convertPrice, t, tProduct } = useContext(LocaleContext);
+  const priceValue = convertPrice(product.price || 0);
+  const formattedPrice = new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(priceValue);
+  const formattedOld = product.oldPrice ? new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(convertPrice(product.oldPrice)) : null;
 
   return (
    <Container className="py-6 shop-page-container" style={{ paddingTop: '100px' }}>
@@ -77,17 +83,17 @@ function ProductDetails() {
 
         <Col md={6}>
           <div className="p-3 bg-white rounded shadow-sm">
-            <h2 className="mb-1">{product.name}</h2>
+            <h2 className="mb-1">{tProduct(product, 'name') || product.name}</h2>
             {/* show category under name as requested */}
             <p className="text-muted mb-2">{product.category ?? 'Uncategorized'}</p>
 
             <div className="d-flex align-items-baseline gap-3 mb-3">
-              <h3 className="mb-0" style={{ background: 'linear-gradient(135deg,#10b981,#059669)', WebkitBackgroundClip: 'text', color: 'transparent' }}>${(product.price || 0).toFixed(2)}</h3>
-              {product.oldPrice && (<small className="text-muted text-decoration-line-through">${product.oldPrice}</small>)}
+              <h3 className="mb-0" style={{ background: 'linear-gradient(135deg,#10b981,#059669)', WebkitBackgroundClip: 'text', color: 'transparent' }}>{formattedPrice}</h3>
+              {formattedOld && (<small className="text-muted text-decoration-line-through">{formattedOld}</small>)}
             </div>
 
             <div className="mb-3">
-              <Badge bg={inStock ? 'success' : 'danger'} className="me-2">{inStock ? 'In Stock' : 'Out of Stock'}</Badge>
+              <Badge bg={inStock ? 'success' : 'danger'} className="me-2">{inStock ? t('inStock') : 'Out of Stock'}</Badge>
               <small className="text-muted">Available: <strong>{stockQty}</strong></small>
             </div>
 
@@ -116,12 +122,12 @@ function ProductDetails() {
                 >+</Button>
               </InputGroup>
 
-              <Button onClick={addToCart} disabled={!inStock || qty > stockQty} className="px-4" variant="primary">Add to Cart</Button>
+              <Button onClick={addToCart} disabled={!inStock || qty > stockQty} className="px-4" variant="primary">{t('addToCart')}</Button>
             </div>
 
             <div>
-              <h5 className="mt-3">Description</h5>
-              <div className="text-muted" style={{ lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: product.description || product.shortDescription || '' }} />
+              <h5 className="mt-3">{t('description')}</h5>
+              <div className="text-muted" style={{ lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: tProduct(product, 'description') || tProduct(product, 'shortDescription') || product.description || product.shortDescription || '' }} />
             </div>
           </div>
         </Col>

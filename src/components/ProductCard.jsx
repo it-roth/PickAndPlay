@@ -2,6 +2,8 @@ import { Card, Button, Toast, ToastContainer, Badge, Modal } from 'react-bootstr
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { getImageUrl, scrollToTop } from '../lib/utils';
+import { useContext } from 'react';
+import { LocaleContext } from '../contexts/LocaleContext';
 import '../assets/styles/ProductCard.css';
 
 
@@ -73,6 +75,10 @@ function ProductCard({ product, showShortDesc = false }) {
     return null;
   }
 
+  const { tProduct, t } = useContext(LocaleContext) || {};
+
+  const displayName = tProduct(product, 'name') || product.name;
+
   return (
     <div className="product-card">
       {/* Image Section with Overlay Effects */}
@@ -125,7 +131,7 @@ function ProductCard({ product, showShortDesc = false }) {
           {product.brand && (
             <span className="brand-badge">{product.brand}</span>
           )}
-          <h3 className="product-title">{product.name}</h3>
+          <h3 className="product-title">{displayName}</h3>
         </div>
 
         {showShortDesc && (product.shortDescription || product.description) && (
@@ -147,20 +153,7 @@ function ProductCard({ product, showShortDesc = false }) {
         </div>
 
         {/* Price Section */}
-        <div className="product-price-section">
-          <div className="price-wrapper">
-            <span className="current-price">
-              ${product.price.toFixed(2)}
-            </span>
-            {product.oldPrice && (
-              <span className="old-price">${product.oldPrice}</span>
-            )}
-          </div>
-          <div className="stock-status in-stock">
-            <span className="status-dot"></span>
-            In Stock
-          </div>
-        </div>
+        <PriceSection product={product} />
 
         {/* Action Buttons */}
         <div className="product-actions">
@@ -175,7 +168,7 @@ function ProductCard({ product, showShortDesc = false }) {
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
             </svg>
-            <span className="btn-text">Details</span>
+            <span className="btn-text">{t('details')}</span>
           </Button>
           <Button className="btn-add-cart" onClick={addToCart}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -183,7 +176,7 @@ function ProductCard({ product, showShortDesc = false }) {
               <circle cx="20" cy="21" r="1" />
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
             </svg>
-            <span className="btn-text">Add to Cart</span>
+            <span className="btn-text">{t('addToCart')}</span>
           </Button>
         </div>
       </div>
@@ -199,7 +192,7 @@ function ProductCard({ product, showShortDesc = false }) {
             </div>
             <div className="toast-text">
               <strong>Added to Cart!</strong>
-              <p>{product.name}</p>
+                <p>{displayName}</p>
             </div>
           </div>
           <div className="toast-progress"></div>
@@ -208,7 +201,7 @@ function ProductCard({ product, showShortDesc = false }) {
       {/* Quick View Modal */}
       <Modal show={showQuickView} onHide={closeQuickView} centered size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>{product.name}</Modal.Title>
+          <Modal.Title>{displayName}</Modal.Title>
         </Modal.Header>
         <Modal.Body className="d-flex flex-column flex-md-row align-items-center gap-3">
           <div className="quickview-image-wrapper" style={{flex:'0 0 320px', display:'flex', justifyContent:'center'}}>
@@ -220,10 +213,10 @@ function ProductCard({ product, showShortDesc = false }) {
           </div>
           <div style={{flex:1}}>
             <h5 className="mb-2">${product.price?.toFixed(2)}</h5>
-            <p className="text-muted">{product.shortDescription || product.description}</p>
+            <p className="text-muted">{tProduct(product, 'shortDescription') || tProduct(product, 'description') || product.shortDescription || product.description}</p>
             <div className="d-flex gap-2 mt-3">
-              <Button variant="primary" as={Link} to={`/product/${product.id}`} onClick={() => { closeQuickView(); handleDetailsClick(); }}>View Details</Button>
-              <Button variant="outline-primary" onClick={addToCart}>Add to Cart</Button>
+              <Button variant="primary" as={Link} to={`/product/${product.id}`} onClick={() => { closeQuickView(); handleDetailsClick(); }}>{t('details')}</Button>
+              <Button variant="outline-primary" onClick={addToCart}>{t('addToCart')}</Button>
             </div>
           </div>
         </Modal.Body>
@@ -233,3 +226,34 @@ function ProductCard({ product, showShortDesc = false }) {
 }
 
 export default ProductCard;
+
+/* Small extracted PriceSection that consumes LocaleContext so price formatting
+   and conversion are centralized for product card and quick-view. */
+function PriceSection({ product }){
+  // useContext must be called at the top level of the component (rules of hooks)
+  const ctx = useContext(LocaleContext) || {};
+
+  // Defensive fallbacks in case provider isn't present or doesn't expose the helpers
+  const currency = ctx.currency || 'USD';
+  const convert = typeof ctx.convertPrice === 'function' ? ctx.convertPrice : (v) => parseFloat(v) || 0;
+  const t = typeof ctx.t === 'function' ? ctx.t : (k) => (k === 'inStock' ? 'In Stock' : k);
+
+  const value = convert(product.price);
+  const old = product.oldPrice ? convert(product.oldPrice) : null;
+
+  const formatted = new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
+  const formattedOld = old ? new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(old) : null;
+
+  return (
+    <div className="product-price-section">
+      <div className="price-wrapper">
+        <span className="current-price">{formatted}</span>
+        {formattedOld && (<span className="old-price">{formattedOld}</span>)}
+      </div>
+      <div className="stock-status in-stock">
+        <span className="status-dot"></span>
+        {t('inStock')}
+      </div>
+    </div>
+  );
+}

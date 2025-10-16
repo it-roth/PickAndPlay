@@ -114,7 +114,7 @@ function Contact() {
           </Col>
         </Row>
       </section>
-      <section className="py-5 bg-light">
+      <section className="py-5">
         <div className="container">
           <h2 className="section-title text-center mb-4">Send Us a Message</h2>
           <div className="section-underline mb-4 mx-auto"></div>
