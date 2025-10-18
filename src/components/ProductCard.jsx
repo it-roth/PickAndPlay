@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { getImageUrl, scrollToTop } from '../lib/utils';
 import { useContext } from 'react';
 import { LocaleContext } from '../contexts/LocaleContext';
+import { CartContext } from '../contexts/CartContext';
+import { showSuccess } from '../lib/notify';
 import '../assets/styles/ProductCard.css';
 
 
 function ProductCard({ product, showShortDesc = false }) {
-  const [showToast, setShowToast] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const navigate = useNavigate();
@@ -28,11 +30,12 @@ function ProductCard({ product, showShortDesc = false }) {
 
   const closeQuickView = () => setShowQuickView(false);
 
-  const addToCart = () => {
+  const { addItem } = useContext(CartContext);
+
+  const addToCart = async () => {
     const token = localStorage.getItem('token');
     // If user is not logged in, redirect to login and save pending action
     if (!token) {
-      // Save minimal pending action to session so it can be resumed after login
       try {
         sessionStorage.setItem('pendingCartAction', JSON.stringify({ productId: product.id, qty: 1 }));
       } catch (e) {
@@ -42,32 +45,74 @@ function ProductCard({ product, showShortDesc = false }) {
       return;
     }
 
-    // Get existing cart or initialize empty array
-    const cart = JSON.parse(localStorage.getItem('cart')) || [];
-
-    // Check if product already exists in cart
-    const existingItem = cart.find(item => String(item.id ?? item._id) === String(product.id ?? product._id));
-
-    if (existingItem) {
-      // Increase quantity if product exists
-      existingItem.quantity = (existingItem.quantity || 0) + 1;
-    } else {
-      // Add new product with quantity 1
-      cart.push({
-        ...product,
-        quantity: 1
-      });
+    // Defensive: ensure addItem exists
+    if (typeof addItem !== 'function') {
+      console.error('CartContext.addItem is not available');
+      try {
+        const { showError } = await import('../lib/notify').then(m => m.default ? m.default : m);
+        showError('Unable to add to cart right now. Please try again.');
+      } catch (e) {
+        // fallback
+        // eslint-disable-next-line no-alert
+        alert('Unable to add to cart right now. Please try again.');
+      }
+      return;
     }
 
-    // Save updated cart back to localStorage
-    localStorage.setItem('cart', JSON.stringify(cart));
+    // Call addItem and await result when it's a promise. Show toast only on success.
+    setIsAdding(true);
+    try {
+      const res = addItem(product);
+      if (res && typeof res.then === 'function') {
+        await res;
+      }
 
-    // Show toast notification
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+      // Success: show a SweetAlert2 toast if available, fallback will use alert
+      try {
+        // await so we can catch failures (e.g., dynamic import issues)
+        console.debug('ProductCard: calling showSuccess for', displayName);
+        // If SweetAlert is present but hidden (z-index/CSS), use a short fallback timer
+        let fallbackTimer = setTimeout(() => {
+          try {
+            console.warn('showSuccess did not display quickly; triggering fallback globalAddToCart');
+            window.dispatchEvent(new CustomEvent('globalAddToCart', { detail: {
+              image: getImageUrl(product.images),
+              title: 'Added to cart',
+              sub: displayName
+            } }));
+          } catch (ev) {}
+        }, 600);
 
-    // Notify other parts of the app (navbar) about cart change
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
+        await showSuccess(`${displayName} added to cart`);
+        clearTimeout(fallbackTimer);
+        console.debug('ProductCard: showSuccess completed for', displayName);
+      } catch (e) {
+        console.error('showSuccess failed:', e);
+        // If SweetAlert isn't available or fails, fallback to the global compact toast
+        try {
+          window.dispatchEvent(new CustomEvent('globalAddToCart', { detail: {
+            image: getImageUrl(product.images),
+            title: 'Added to cart',
+            sub: displayName
+          } }));
+        } catch (ev) {
+          // last-resort fallback: browser alert
+          // eslint-disable-next-line no-alert
+          alert(`${displayName} added to cart`);
+        }
+      }
+    } catch (err) {
+      console.error('Error adding item to cart:', err);
+      try {
+        const { showError } = await import('../lib/notify').then(m => m.default ? m.default : m);
+        showError('Failed to add item to cart. Please try again.');
+      } catch (e) {
+        // eslint-disable-next-line no-alert
+        alert('Failed to add item to cart. Please try again.');
+      }
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   // Return early if no product data
@@ -170,34 +215,23 @@ function ProductCard({ product, showShortDesc = false }) {
             </svg>
             <span className="btn-text">{t('details')}</span>
           </Button>
-          <Button className="btn-add-cart" onClick={addToCart}>
+          <Button className="btn-add-cart" onClick={addToCart} disabled={isAdding}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="9" cy="21" r="1" />
               <circle cx="20" cy="21" r="1" />
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
             </svg>
-            <span className="btn-text">{t('addToCart')}</span>
+            {isAdding ? (
+              <span className="btn-text"><span className="btn-spinner" aria-hidden></span> Adding...</span>
+            ) : (
+              <span className="btn-text">{t('addToCart')}</span>
+            )}
           </Button>
         </div>
       </div>
 
       {/* Enhanced Toast Notification */}
-      {showToast && (
-        <div className="toast-notification">
-          <div className="toast-content">
-            <div className="toast-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-            <div className="toast-text">
-              <strong>Added to Cart!</strong>
-                <p>{displayName}</p>
-            </div>
-          </div>
-          <div className="toast-progress"></div>
-        </div>
-      )}
+      {/* toast is now global; ProductCard no longer renders it */}
       {/* Quick View Modal */}
       <Modal show={showQuickView} onHide={closeQuickView} centered size="lg">
         <Modal.Header closeButton>

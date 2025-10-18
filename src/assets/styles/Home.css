@@ -56,72 +56,7 @@
   background: linear-gradient(180deg, rgba(11,34,64,0.02), rgba(11,34,64,0.00));
 }
 
-/* Hero Section (full viewport under fixed header) */
-.hero-section {
-  position: relative;
-  height: 100vh;
-  min-height: 520px;
-  display: block;
-}
 
-.hero-carousel .hero-image {
-  height: 100vh;
-  object-fit: cover;
-  object-position: center;
-}
-
-.hero-caption {
-  position: absolute;
-  inset: 0; /* make full cover */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none; /* allow clicks to pass to buttons (they'll override) */
-}
-
-.hero-content {
-  pointer-events: auto;
-  text-align: center;
-  width: 90%;
-  max-width: 820px;
-  margin: 0 auto;
-}
-
-.hero-title {
-  font-size: clamp(2rem, 4.5vw, 3.6rem);
-  line-height: 1.02;
-  color: #fff;
-  text-shadow: 0 6px 18px rgba(2,6,23,0.6);
-  margin-bottom: 0.6rem;
-}
-
-.hero-description {
-  color: rgba(255,255,255,0.92);
-  font-size: clamp(1rem, 1.6vw, 1.25rem);
-  margin-bottom: 1.25rem;
-}
-
-/* Use the shared pp-btn appearance but ensure it has enough contrast on images */
-.hero-cta-btn {
-  --cta-accent: #ff7a00;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 22px;
-  background: linear-gradient(180deg, var(--cta-accent), #e25800);
-  color: #fff !important;
-  border-radius: 999px;
-  font-weight: 800;
-  letter-spacing: 0.6px;
-  box-shadow: 0 10px 30px rgba(226,88,0,0.18);
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
-  text-transform: none;
-}
-
-.hero-cta-btn:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 44px rgba(226,88,0,0.22);
-}
 
 /* Shop Now button styles (used on multiple places) */
 .shop-now-btn,
@@ -194,8 +129,7 @@
   .shop-now-btn .shop-now-icon, .shop-now-btn-custom .shop-now-icon, .pp-btn .btn-icon--abs { right: 12px; }
 }
 
-/* Utility: force an even longer pill for hero CTAs */
-.shop-now-btn--long { min-width: 280px; padding-left: 44px; padding-right: 44px; }
+
 
 /* Categories */
 .categories-section { padding-top: 6rem; padding-bottom: 3.5rem; }
@@ -226,16 +160,7 @@
 :target { scroll-margin-top: 120px; }
 
 /* Responsive tweaks */
-@media (max-width: 992px) {
-  .hero-caption { padding: 2rem; }
-  .hero-title { font-size: 2rem; }
-}
 
-@media (max-width: 576px) {
-  .hero-title { font-size: 1.6rem; }
-  .hero-description { font-size: 0.95rem; }
-  .hero-cta-btn { padding: 10px 16px; font-size: 0.95rem; }
-}
 
 /* Ensure carousel controls are visible on dark images */
 .carousel-control-prev-icon,

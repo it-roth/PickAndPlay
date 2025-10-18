@@ -64,6 +64,25 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
 }
 
+/* Fix Khmer letter spacing and transforms for headings when Khmer font is active */
+body.lang-kh h1,
+body.lang-kh h2,
+body.lang-kh h3,
+body.lang-kh h4,
+body.lang-kh h5,
+body.lang-kh h6 {
+  /* Khmer scripts need normal letter spacing and no forced transforms */
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+/* Also force hero titles/descriptions to use normal spacing in Khmer */
+body.lang-kh .hero-title,
+body.lang-kh .hero-description {
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
 h1 { font-size: 2.1rem; }
 h2 { font-size: 1.6rem; }
 h3 { font-size: 1.25rem; }
