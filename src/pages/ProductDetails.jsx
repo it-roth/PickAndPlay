@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Button, Image, Form, InputGroup, Badge } from 'react-bootstrap';
 import { productService } from '../lib/api';
 import { getImageUrl } from '../lib/utils';
-import { useContext } from 'react';
 import { LocaleContext } from '../contexts/LocaleContext';
+import { useCart } from '../contexts/CartContext';
+import { STORAGE_KEYS } from '../lib/constants';
 
 function ProductDetails() {
   const { id } = useParams();
@@ -12,6 +13,8 @@ function ProductDetails() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
+  const { addItem, updateQuantity } = useCart();
+  const { currency, convertPrice, t, tProduct } = useContext(LocaleContext);
 
   useEffect(() => {
     let mounted = true;
@@ -27,24 +30,34 @@ function ProductDetails() {
     return () => { mounted = false; };
   }, [id]);
 
-  const addToCart = () => {
+  const addToCart = async () => {
     if (!product) return;
-    const token = localStorage.getItem('token');
-    if (!token) {
-      // Save pending action so user can resume after logging in
-      try { sessionStorage.setItem('pendingCartAction', JSON.stringify({ productId: product.id ?? product._id, qty })); } catch (e) {}
-      navigate('/login', { state: { from: `/product/${product.id ?? product._id}` } });
-      return;
-    }
 
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const found = cart.find(i => String(i.id ?? i._id) === String(product.id ?? product._id));
-    if (found) found.quantity = (found.quantity || 1) + qty;
-    else cart.push({ ...product, quantity: qty });
-    localStorage.setItem('cart', JSON.stringify(cart));
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
-    // simple confirmation
-    alert(`${product.name} added to cart`);
+    // notification helpers (dynamically import when used)
+    const showSuccess = async (msg) => {
+      const mod = await import('../lib/notify');
+      return mod.showSuccess(msg);
+    };
+    const showError = async (msg) => {
+      const mod = await import('../lib/notify');
+      return mod.showError(msg);
+    };
+
+    try {
+      const cart = JSON.parse(localStorage.getItem(STORAGE_KEYS.CART_ITEMS) || '[]');
+      const found = cart.find(i => String(i.id ?? i._id) === String(product.id ?? product._id));
+
+      if (found) {
+        updateQuantity(found.id, found.quantity + qty);
+      } else {
+        addItem({ ...product, quantity: qty });
+      }
+      // Single friendly confirmation (use SweetAlert2 if available)
+      await showSuccess(`Added "${product.name}" (x${qty}) to your cart.`);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      showError('Could not add item to cart — please try again.');
+    }
   };
 
   if (loading) return <Container className="py-5">Loading...</Container>;
@@ -59,10 +72,9 @@ function ProductDetails() {
 
   const stockQty = Number(product.stockQuantity ?? product.quantity ?? product.stock ?? product.count ?? 0);
   const inStock = (typeof product.inStock === 'boolean') ? product.inStock : (stockQty > 0);
-  const { currency, convertPrice, t, tProduct } = useContext(LocaleContext);
-  const priceValue = convertPrice(product.price || 0);
-  const formattedPrice = new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(priceValue);
-  const formattedOld = product.oldPrice ? new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(convertPrice(product.oldPrice)) : null;
+  const priceValue = product ? convertPrice(product.price || 0) : 0;
+  const formattedPrice = product ? new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(priceValue) : '';
+  const formattedOld = (product && product.oldPrice) ? new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(convertPrice(product.oldPrice)) : null;
 
   return (
    <Container className="py-6 shop-page-container" style={{ paddingTop: '100px' }}>

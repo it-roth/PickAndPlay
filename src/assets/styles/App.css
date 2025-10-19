@@ -5,72 +5,6 @@ html {
   scroll-behavior: smooth;
 }
 
-body, html {
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-  font-family: var(--body-font);
-  color: #333;
-  line-height: 1.6;
-  letter-spacing: -0.01em;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Enhanced form elements */
-.form-control {
-  border-radius: 8px;
-  padding: 0.625rem 1rem;
-  border: 1px solid rgba(0,0,0,0.1);
-  transition: all 0.2s ease;
-}
-
-.form-control:focus {
-  border-color: var(--main-color);
-  box-shadow: 0 0 0 3px rgba(253, 126, 20, 0.15);
-}
-
-.input-group .btn {
-  border-radius: 0 8px 8px 0;
-}
-
-:root {
-  /* Keep original colors */
-  --main-color: #fd7e14; /* Orange */
-  --secondary-color: #198754; /* Sea Green */
-  --main-color-light: #ff9a47;
-  --secondary-color-light: #25a56a;
-  --main-color-dark: #e26400;
-  --secondary-color-dark: #14693e;
-  --text-on-main: #ffffff;
-  --text-on-secondary: #ffffff;
-  
-  /* Typography */
-  --body-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  --heading-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  
-  /* Spacing */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  
-  /* New theme colors matching the example but using our scheme */
-  --dark-navy: #1a2030; /* For black friday banner */
-  --navy-blue: #2B377B; /* Not used anymore */
-  --topbar-bg: var(--dark-navy); /* Now using dark navy color */
-  --banner-bg: var(--dark-navy);
-  --navbar-text: #ffffff;
-
-  /* Utility colors */
-  --dark-bg: #212529;
-  --light-bg: #f8f9fa;
-  --medium-bg: #e9ecef;
-  --text-dark: #212529;
-  --text-muted: #6c757d;
-  --border-color: #dee2e6;
-}
 
 /* Improved typography */
 h1, h2, h3, h4, h5, h6 {
@@ -89,104 +23,7 @@ h5 { font-size: 1.25rem; }
 h6 { font-size: 1rem; }
 
 /* Override Bootstrap container for better spacing */
-.container {
-  padding: 0 1.5rem;
-}
-
-/* Header styles */
-.navbar-brand {
-  font-weight: 700;
-  font-size: 1.5rem;
-}
-
-@media (max-width: 991px) {
-  .main-content {
-    padding-top: 0px; /* No spacing on mobile to place content right below the navbar */
-  }
-  
-  /* Fix navbar spacing on mobile */
-  .navbar-wrapper {
-    position: relative;
-  }
-  
-  /* Mobile navigation adjustments */
-  .main-menu {
-    display: none;
-  }
-  
-  .navbar-collapse.collapse.show {
-    display: block !important;
-  }
-  
-  .navbar-collapse {
-    transition: height 0.3s ease;
-  }
-  
-  .search-container {
-    width: 100%;
-    margin: 10px 0;
-  }
-}
-
-/* Navbar wrapper to contain all navbar elements */
-.navbar-wrapper {
-  position: relative;
-  top: 0;
-  width: 100%;
-  z-index: 1040;
-  margin-bottom: 0;
-}
-
-/* Main content container - zero gap below navbar */
-.main-content {
-  padding-top: 0;
-  margin-top: 0;
-}
-
-/* Mobile menu styling */
-.mobile-menu {
-  background-color: white;
-  border-radius: 0;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 0;
-}
-
-.mobile-nav-link {
-  color: var(--text-dark) !important;
-  font-weight: 600;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-color);
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-}
-
-.mobile-nav-link:hover,
-.mobile-nav-link.active {
-  color: var(--dark-navy) !important;
-  background-color: rgba(26, 32, 48, 0.05);
-  text-decoration: none !important;
-  border-left: 4px solid var(--main-color);
-  padding-left: calc(1rem - 4px);
-}
-
-/* Black Friday Banner */
-.black-friday-banner {
-  background-color: var(--banner-bg);
-  color: white;
-  padding: 8px 0;
-  font-size: 0.9rem;
-}
-
-.banner-text {
-  font-weight: 600;
-  font-size: 1rem;
-}
-
-.banner-discount {
-  font-weight: 700;
-  font-size: 1.2rem;
-}
+/* (no overrides here) */
 
 .shop-now-btn {
   border-radius: 4px;
@@ -1267,13 +1104,6 @@ a, a:hover, a:focus, a:active, .dropdown-item, .dropdown-item:hover {
   padding-top: 76px; /* Account for fixed navbar */
 }
 
-/* About Hero Section */
-.about-hero {
-  background-color: var(--main-color);
-  color: var(--text-on-main);
-  padding: 5rem 0;
-  position: relative;
-}
 
 .about-title {
   font-size: 3.5rem;
@@ -1562,87 +1392,12 @@ a, a:hover, a:focus, a:active, .dropdown-item, .dropdown-item:hover {
   }
 }
 
-/* Home page and carousel styles */
-.home-container {
-  padding-top: 56px; /* Space for fixed navbar */
-}
-
 @media (min-width: 992px) {
   .home-container {
     padding-top: 65px; /* More space on larger screens */
   }
 }
 
-.hero-carousel {
-  margin-top: 0;
-  border: none;
-  overflow: hidden;
-}
-
-/* Hide carousel indicators (dots) */
-.hero-carousel .carousel-indicators {
-  display: none !important;
-}
-
-/* Style carousel control arrows */
-.hero-carousel .carousel-control-prev,
-.hero-carousel .carousel-control-next {
-  opacity: 0.7;
-  width: 8%;
-}
-
-/* You can uncomment this if you want to hide the arrows too
-.hero-carousel .carousel-control-prev,
-.hero-carousel .carousel-control-next {
-  display: none;
-}
-*/
-
-.carousel-img {
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  display: block;
-}
-
-.carousel-caption {
-  padding: 1rem;
-  max-width: 100%;
-  width: 100%;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.carousel-caption h1 {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 0, 0, 0.8);
-  color: white;
-  text-align: center;
-}
-
-.carousel-caption p {
-  font-size: 1.1rem;
-  margin-bottom: 1rem;
-  text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.9), 0 0 15px rgba(0, 0, 0, 0.8);
-  font-weight: 500;
-  color: white;
-  text-align: center;
-}
-
-.carousel-caption .btn {
-  padding: 0.6rem 1.5rem;
-  font-weight: 600;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
 
 .shop-now-btn {
   background-color: var(--main-color) !important;
@@ -1662,31 +1417,7 @@ a, a:hover, a:focus, a:active, .dropdown-item, .dropdown-item:hover {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
 }
 
-/* Carousel responsive styles */
-@media (max-width: 767px) {
-  .carousel-caption {
-    padding: 0.5rem;
-  }
-  
-  .carousel-caption h1 {
-    font-size: 2rem;
-    margin-bottom: 0.3rem;
-  }
-  
-  .carousel-caption p {
-    font-size: 1rem;
-    margin-bottom: 0.75rem;
-  }
-  
-  .carousel-caption .btn {
-    padding: 0.4rem 1rem;
-    font-size: 0.9rem;
-  }
 
-  .carousel-img {
-    height: 400px !important;
-  }
-}
 
 /* Admin dashboard styles */
 .admin-card {

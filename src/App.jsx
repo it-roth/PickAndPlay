@@ -30,6 +30,7 @@ import Users from './pages/Admin/Users';
 
 // Not Found Page
 import NotFound from './pages/NotFound';
+import { Back } from 'react-bootstrap-icons';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -96,6 +97,7 @@ function App() {
                 <Dashboard />
               </ProtectedRoute>
             } />
+
             <Route path="/admin/products" element={
               <ProtectedRoute adminOnly={true}>
                 <ProductList />

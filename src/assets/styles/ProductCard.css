@@ -1,60 +1,164 @@
+
 .product-card {
-  background: #ffffff;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  height: 100%;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 320px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(18, 30, 50, 0.06);
+  overflow: hidden;
+  transition: transform 0.22s cubic-bezier(.2,.9,.2,1), box-shadow 0.22s;
 }
-
 .product-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(-8px) scale(1.01);
+  box-shadow: 0 28px 60px rgba(18, 30, 50, 0.10);
 }
 
 /* Image Section */
 .product-image-wrapper {
   position: relative;
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 18px 8px;
+  background: radial-gradient(1200px 200px at 10% 0%, rgba(99,102,241,0.06), transparent 26%);
 }
-
 .product-image-container {
-  position: relative;
-  /* Further compact card: shorter image height */
-  height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  overflow: hidden;
+  width: 220px;
+  height: 160px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
-
 .product-image {
-  width: 100%;
-  height: 100%;
-  /* show the full image (no cropping) inside the fixed-height box */
+  max-width: 100%;
+  max-height: 150px;
   object-fit: contain;
-  object-position: center;
-  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0;
-  background: #ffffff; /* neutral background for letterboxing */
-  display: block;
-  /* rendering hints to avoid blurring when parent is transformed or during scroll */
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  will-change: opacity, transform;
-  image-rendering: auto;
+  transition: transform 0.28s ease, opacity 0.2s ease;
+  opacity: 1;
+}
+.product-image.loaded { transform: translateY(0); opacity: 1; }
+.image-skeleton { position: absolute; inset: 18px; display:block; }
+.skeleton-shimmer { width:100%; height:100%; background:linear-gradient(90deg,#f6f8fb,#eef4ff,#f6f8fb); background-size:200% 100%; animation: shimmer 1.3s infinite; border-radius:10px }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.discount-badge { position:absolute; left:14px; top:12px; background:#ff6b6b; color:#fff; padding:6px 10px; border-radius:20px; font-weight:700; font-size:0.78rem; box-shadow: 0 4px 12px rgba(255,107,107,0.12) }
+
+.product-content { padding: 14px 16px 18px; display:flex; flex-direction:column; gap:10px }
+.product-header { display:flex; align-items:center; gap:8px }
+.brand-badge { background:linear-gradient(90deg,#6b5ce7,#8b5cf6); color:#fff; padding:6px 10px; border-radius:999px; font-weight:700; font-size:0.72rem; box-shadow: 0 6px 18px rgba(107,92,231,0.08) }
+.product-title { font-size:1rem; margin:0; font-weight:800; color:#111827 }
+.product-short-desc { font-size:0.92rem; color:#6b7280 }
+.product-rating { display:flex; align-items:center; gap:8px }
+.rating-count { color:#9ca3af; font-size:0.85rem }
+
+.product-price-section { display:flex; justify-content:space-between; align-items:center }
+.current-price { color:#059669; font-weight:800; font-size:1.06rem }
+.old-price { text-decoration:line-through; color:#9ca3af; font-size:0.85rem }
+.stock-status { padding:6px 8px; border-radius:14px; background:#ecfdf5; color:#065f46; font-size:0.82rem; display:flex; gap:6px; align-items:center }
+.status-dot { width:8px; height:8px; border-radius:999px; background:#059669; display:inline-block }
+
+.product-actions { display:flex; gap:10px; align-items:center }
+.btn-details { display:inline-flex; align-items:center; gap:8px; background:linear-gradient(180deg,#e6f0ff,#ffffff); border:none; color:#0b63d1; padding:8px 12px; border-radius:10px }
+.btn-add-cart { background: linear-gradient(90deg,#ff8a00,#ff4a00); border:none; color:#fff; padding:10px 14px; border-radius:12px; display:inline-flex; gap:8px; align-items:center; box-shadow: 0 10px 26px rgba(255,90,0,0.12) }
+.btn-add-cart:disabled { opacity:0.8; cursor:not-allowed }
+.btn-text { font-weight:800 }
+.btn-spinner { width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,0.45); border-top-color:#fff; animation:spin 0.95s linear infinite; display:inline-block }
+@keyframes spin { to{transform:rotate(360deg)} }
+.no-image-placeholder { display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:#9ca3af }
+
+.toast-compact {
+  /* top-right canonical placement (matches SweetAlert top-end) */
+  position: fixed;
+  right: 20px;
+  left: auto;
+  top: 72px;
+  z-index: 9000;
+  background: linear-gradient(180deg, rgba(20,20,30,0.94), rgba(12,12,16,0.96));
+  color: #fff;
+  padding: 12px 14px;
+  border-radius: 12px;
+  box-shadow: 0 18px 60px rgba(6,7,12,0.6);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  transform: translateY(0);
+  animation: toastIn 260ms cubic-bezier(.2,.9,.2,1) both;
+  max-width: 360px;
+}
+.toast-compact img, .toast-compact .toast-compact-icon { width:44px; height:44px; object-fit:cover; border-radius:8px }
+.toast-compact .toast-compact-icon { display:flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.06); flex-shrink: 0; }
+.toast-compact .toast-compact-body { display:flex; flex-direction:column; gap:4px; margin-left: 4px; margin-right: 4px }
+.toast-compact .toast-compact-body strong { font-size: 0.95rem; line-height: 1; }
+.toast-compact .toast-compact-sub { color: rgba(255,255,255,0.86); font-size: 0.85rem }
+
+/* Success / info variants */
+.toast-compact.toast-success { background: linear-gradient(180deg,#10b981,#059669); }
+.toast-compact.toast-success .toast-compact-icon { background: rgba(255,255,255,0.12); }
+.toast-compact.toast-info { background: linear-gradient(180deg,#2563eb,#1e40af); }
+
+/* Progress bar that shrinks from 100% to 0 over toast duration */
+.toast-compact-progress { position: absolute; right: 0; left: 0; bottom: 0; height: 3px; background: rgba(255,255,255,0.22); transform-origin: left; animation-name: toastProgress; animation-timing-function: linear; }
+@keyframes toastProgress { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+@keyframes toastIn { from{opacity:0; transform:translateY(-8px) scale(.98)} to{opacity:1; transform:none} }
+
+
+/* Compact variations and responsive tweaks */
+.product-card.small { max-width: 280px; }
+.product-card.compact .product-image-container { height: 110px }
+
+@media (max-width: 640px) {
+  .product-content { padding: 12px; }
+  .product-actions { flex-direction: column; gap: 8px; }
+  /* mobile: keep toast near the right edge but slightly inset */
+  .toast-compact { right: 12px; left: auto; top: 64px; }
 }
 
-/* Mobile compacting: make letters and buttons shorter on small screens only */
-@media (max-width: 420px) {
-  .product-image-container {
-    height: 54px; /* even smaller for very compact mobile */
-  }
+@media (min-width: 992px) {
+  .product-image-container { height: 120px; }
+}
+@media (min-width: 1400px) {
+  .product-image-container { height: 160px; }
+}
 
-  /* hide brand badge on very small screens to save vertical space */
+/* Toast notification (alternative center panel) */
+.toast-notification { position: fixed; top: 24px; right: 24px; background: white; border-radius: 16px; padding: 20px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15); min-width: 320px; animation: slideIn 0.4s cubic-bezier(0.4,0,0.2,1); z-index: 1000; overflow: hidden; }
+@keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+.toast-content { display: flex; gap: 16px; align-items: flex-start; }
+.toast-icon { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.toast-icon svg { stroke: white; }
+.toast-text strong { display: block; color: #111827; font-size: 15px; margin-bottom: 4px; }
+.toast-text p { margin: 0; color: #6b7280; font-size: 13px; }
+.toast-progress { position: absolute; bottom: 0; left: 0; height: 4px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); animation: progress 3s linear; }
+@keyframes progress { from { width: 100%; } to { width: 0%; } }
+
+/* Mobile stacking and small-screen UX */
+@media (max-width: 576px) {
+  .product-card { width: 100%; margin: 0 auto; border-radius: 14px; }
+  .product-content { padding: 10px; }
+  .product-price-section { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .stock-status { order: 2; width: 100%; display: flex; justify-content: flex-start; }
+  .product-actions { flex-direction: column; align-items: stretch; }
+  .product-actions .btn-details, .product-actions .btn-add-cart { width: 100% !important; justify-content: center; }
+}
+
+/* Small-screen typography adjustments */
+@media (max-width: 420px) {
+  .product-title { font-size: 13px; -webkit-line-clamp: 2; line-clamp: 2; min-height: 40px; }
+  .product-content { padding: 8px; }
+  .brand-badge { font-size: 9px; padding: 2px 6px; }
+  .current-price { font-size: 15px; }
+}
+
+/* Quick view modal image styles and subtle image transitions */
+.quickview-image-wrapper { background: #fff; padding: 12px; border-radius: 8px; }
+.quickview-image { max-width: 100%; max-height: 420px; object-fit: contain; display:block; image-rendering: auto; -webkit-backface-visibility: hidden; backface-visibility: hidden; transform: translateZ(0); }
+
+/* Ensure image transitions remain subtle and not transformed in a way that causes blurring */
+.product-image, .quickview-image { transition: opacity 0.2s ease; }
+.product-card:hover .product-image { transform: none; }
   .brand-badge {
     display: none;
   }
@@ -89,100 +193,7 @@
     margin-bottom: 2px;
     padding: 1px 0;
   }
-
-  .current-price {
-    font-size: 10px;
-  }
-
-  .old-price {
-    font-size: 9px;
-  }
-
-  .stock-status {
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 12px;
-  }
-
-  .product-actions {
-    gap: 3px;
-  }
-
-  .product-actions button {
-    padding: 3px 5px;
-    font-size: 8px;
-    height: 24px;
-    border-radius: 6px;
-  }
-
-  .product-actions button svg {
-    width: 10px;
-    height: 10px;
-    margin-right: 4px;
-  }
-
-  .btn-details {
-    padding: 2px 6px;
-    font-size: 8px;
-    border-radius: 7px;
-  }
-
-  .btn-add-cart {
-    padding: 3px 6px;
-    font-size: 8px;
-  }
-
-  /* hide overlay and discount on tiny screens to reduce clutter */
-  .product-overlay,
-  .discount-badge {
-    display: none !important;
-  }
-}
-
-.product-image.loaded {
-  opacity: 1;
-}
-
-.product-card:hover .product-image {
-  /* keep subtle emphasis but don't crop or scale the full image */
-  transform: none;
-}
-
-.image-skeleton {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-.no-image-placeholder {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: rgba(0, 0, 0, 0.6);
-  gap: 12px;
-  background: #fff;
-}
+  
 
 .no-image-placeholder span {
   font-size: 14px;
@@ -273,7 +284,7 @@
 
 .brand-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  /* background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); */
   color: white;
   padding: 2px 6px;
   border-radius: 8px;
@@ -452,7 +463,7 @@
 
 .btn-details:hover {
   transform: translateY(-2px);
-  background: linear-gradient(135deg,#60a5fa 0%, #1e40af 100%);
+  /* background: linear-gradient(135deg,#60a5fa 0%, #1e40af 100%); */
   box-shadow: 0 10px 28px rgba(124,58,237,0.22);
 }
 
@@ -706,4 +717,4 @@
 
 /* Avoid blurring by removing transform effects on hover for images */
 .product-image, .quickview-image { transition: opacity 0.2s ease; }
-.product-card:hover .product-image { transform: none; }
+.product-card:hover .product-image { transform: none; } 

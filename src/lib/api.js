@@ -126,9 +126,24 @@ export const productService = {
 
 export const orderService = {
   placeOrder: (orderData) => api.post('/orders', orderData),
+  updateOrderItems: (orderId, items) => api.put(`/orders/${orderId}/items`, items),
   getUserOrders: () => api.get('/orders/me'),
   getAllOrders: () => api.get('/orders'), // Admin only
   updateOrderStatus: (id, status) => api.patch(`/orders/${id}/status`, { status }),
+  generateKhqrCode: (orderId, amount) => api.post(`/orders/${orderId}/khqr`, { amount }),
+  getKhqrPaymentStatus: (orderId) => api.get(`/orders/${orderId}/khqr/status`),
+  placeBakongPayment: (orderId, payload) => api.post(`/orders/${orderId}/bakong`, payload),
+  confirmBakongCallback: (payload) => api.post('/bakong/callback', payload),
+};
+
+// Simple cart endpoints so frontend can persist cart server-side for logged in users
+export const cartService = {
+  getCart: () => api.get('/cart'), // GET /api/cart - returns cart items for current user
+  setCart: (items) => api.post('/cart', { items }), // POST /api/cart - replace cart
+  addItem: (item) => api.post('/cart/items', item), // POST /api/cart/items
+  updateItem: (itemId, payload) => api.put(`/cart/items/${itemId}`, payload), // PUT /api/cart/items/:id
+  removeItem: (itemId) => api.delete(`/cart/items/${itemId}`), // DELETE /api/cart/items/:id
+  clearCart: () => api.delete('/cart'),
 };
 
 export const userService = {

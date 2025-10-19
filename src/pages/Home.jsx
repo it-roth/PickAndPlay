@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Carousel as BootstrapCarousel } from 'bootstrap';
+import { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { useContext } from 'react';
 import { LocaleContext } from '../contexts/LocaleContext';
+import HeroSection from '../components/HeroSection';
 import blackFriday from '../assets/images/black Friddays.jpg';
 import shipping from '../assets/images/shipping Guitar banner.png';
 import ProductCard from '../components/ProductCard';
@@ -45,99 +44,14 @@ function Home() {
     fetchProducts();
   }, []);
 
-  // Initialize Bootstrap Carousel for the hero section so it works when rendered by React
-  useEffect(() => {
-    const el = document.getElementById('heroCarousel');
-    if (!el) return undefined;
 
-    const carousel = new BootstrapCarousel(el, {
-      interval: 5000,
-      pause: 'hover',
-    });
-
-    // Ensure it starts cycling
-    try {
-      carousel.cycle();
-    } catch (err) {
-      // ignore
-    }
-
-    return () => {
-      try {
-        carousel.dispose();
-      } catch (err) {
-        // ignore
-      }
-    };
-  }, []);
-
-  // Hero carousel items
   const { t } = useContext(LocaleContext);
-
-  const carouselItems = [
-    {
-      image: 'https://images.unsplash.com/photo-1525201548942-d8732f6617a0',
-      title: t('hero1_title'),
-      description: t('hero1_description'),
-      link: '/shop',
-    },
-    {
-      image: 'https://images.unsplash.com/photo-1556449895-a33c9dba33dd',
-      title: t('hero2_title'),
-      description: t('hero2_description'),
-      link: '/categories',
-    },
-    {
-      image: 'https://images.unsplash.com/photo-1516924962500-2b4b3b99ea02',
-      title: t('hero3_title'),
-      description: t('hero3_description'),
-      link: '/shop',
-    },
-  ];
 
   return (
     <div className="modern-home">
 
-      {/* Hero Section with Gradient Overlay (native Bootstrap carousel markup) */}
-      <section className="hero-section position-relative">
-        <div id="heroCarousel" className="carousel slide carousel-fade hero-carousel" data-bs-ride="carousel">
-          <div className="carousel-inner">
-            {carouselItems.map((item, index) => (
-              <div className={`carousel-item ${index === 0 ? 'active' : ''}`} key={index}>
-                <div className="hero-image-container">
-                  <img
-                    className="d-block w-100 hero-image"
-                    src={item.image}
-                    alt={item.title}
-                    style={{
-                      height: '100vh',
-                      objectFit: 'cover',
-                      objectPosition: 'center'
-                    }}
-                  />
-                </div>
-                <div className="carousel-caption hero-caption">
-                  <div className="hero-content">
-                    <h1 className={`hero-title ${item.title === 'Special Offers' ? 'hero-title--special' : ''}`}>{item.title}</h1>
-                    <p className={`hero-description ${item.title === 'Special Offers' ? 'hero-description--special' : ''}`}>{item.description}</p>
-                    <Link to={item.link} className={`btn btn-dark shop-now-btn shop-now-btn-custom ${item.title === 'Special Offers' ? 'hero-cta-btn--special' : ''}`}>
-                      {t('shopNow')}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button className="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
-            <span className="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span className="visually-hidden">Previous</span>
-          </button>
-          <button className="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
-            <span className="carousel-control-next-icon" aria-hidden="true"></span>
-            <span className="visually-hidden">Next</span>
-          </button>
-        </div>
-      </section>
+      {/* Hero Section (extracted to component) */}
+      <HeroSection />
 
       {/* Categories Section */}
       <section className="categories-section mt-5 pt-5">

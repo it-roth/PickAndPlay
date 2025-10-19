@@ -264,4 +264,4 @@ function getStatusBadge(status) {
   }
 }
 
-export default Dashboard;
+export default Dashboard;  

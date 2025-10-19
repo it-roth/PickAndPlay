@@ -1,26 +1,30 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { STORAGE_KEYS } from '../lib/constants';
+import { cartService, orderService } from '../lib/api';
 
-const CartContext = createContext();
+export const CartContext = createContext();
 
 const cartReducer = (state, action) => {
   switch (action.type) {
     case 'ADD_ITEM':
-      const existingItem = state.items.find(item => item.id === action.payload.id);
-      if (existingItem) {
+      {
+        const existingItem = state.items.find(item => item.id === action.payload.id);
+        const addQty = Number(action.payload.quantity) || 1;
+        if (existingItem) {
+          return {
+            ...state,
+            items: state.items.map(item =>
+              item.id === action.payload.id
+                ? { ...item, quantity: item.quantity + addQty }
+                : item
+            )
+          };
+        }
         return {
           ...state,
-          items: state.items.map(item =>
-            item.id === action.payload.id
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
-          )
+          items: [...state.items, { ...action.payload, quantity: addQty }]
         };
       }
-      return {
-        ...state,
-        items: [...state.items, { ...action.payload, quantity: 1 }]
-      };
     
     case 'REMOVE_ITEM':
       return {
@@ -50,49 +54,82 @@ const cartReducer = (state, action) => {
         items: action.payload
       };
     
+    
     default:
       return state;
   }
 };
 
 const initialState = {
-  items: []
+  items: [],
 };
 
 export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
+  const isInitialMount = useRef(true);
+  const syncInProgress = useRef(false);
+  const pendingSync = useRef(false);
+  const failureCount = useRef(0);
+  const isFirstSave = useRef(true);
 
+  // Load cart from localStorage on mount
   useEffect(() => {
-    // Load cart from localStorage
     const savedCart = localStorage.getItem(STORAGE_KEYS.CART_ITEMS);
     if (savedCart) {
-      dispatch({ type: 'LOAD_CART', payload: JSON.parse(savedCart) });
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        dispatch({ type: 'LOAD_CART', payload: parsedCart });
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
+        localStorage.removeItem(STORAGE_KEYS.CART_ITEMS);
+      }
     }
   }, []);
 
+  // Save cart to localStorage whenever it changes
   useEffect(() => {
-    // Save cart to localStorage whenever it changes
-    localStorage.setItem(STORAGE_KEYS.CART_ITEMS, JSON.stringify(state.items));
+    try {
+      if (isFirstSave.current) {
+        isFirstSave.current = false;
+        return;
+      }
+      localStorage.setItem(STORAGE_KEYS.CART_ITEMS, JSON.stringify(state.items));
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+    } catch (error) {
+      console.error('Error saving cart to localStorage:', error);
+    }
   }, [state.items]);
 
+  // Note: we removed automatic server-side cart sync. The cart is local-only now
+  // and orders are created only during explicit checkout (see Cart.jsx -> handleCheckout).
+
+  // Cart actions
   const addItem = (product) => {
+    // Update local state here. The useEffect will serialize and sync to backend.
     dispatch({ type: 'ADD_ITEM', payload: product });
+
+    // No server-sync for addItem anymore. Resolve immediately.
+    return Promise.resolve(null);
   };
 
-  const removeItem = (productId) => {
+  const removeItem = async (productId) => {
+    // Only update local state. Sync handled by effect.
     dispatch({ type: 'REMOVE_ITEM', payload: productId });
   };
 
-  const updateQuantity = (productId, quantity) => {
+  const updateQuantity = async (productId, quantity) => {
     if (quantity <= 0) {
       removeItem(productId);
     } else {
+      // Only update local state. The effect will pick up the change and sync.
       dispatch({ type: 'UPDATE_QUANTITY', payload: { id: productId, quantity } });
     }
   };
 
-  const clearCart = () => {
+  const clearCart = async () => {
     dispatch({ type: 'CLEAR_CART' });
+    // Clear any lingering local keys
+    localStorage.removeItem('pendingOrderId');
   };
 
   const getCartTotal = () => {

@@ -64,6 +64,25 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
 }
 
+/* Fix Khmer letter spacing and transforms for headings when Khmer font is active */
+body.lang-kh h1,
+body.lang-kh h2,
+body.lang-kh h3,
+body.lang-kh h4,
+body.lang-kh h5,
+body.lang-kh h6 {
+  /* Khmer scripts need normal letter spacing and no forced transforms */
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+/* Also force hero titles/descriptions to use normal spacing in Khmer */
+body.lang-kh .hero-title,
+body.lang-kh .hero-description {
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
 h1 { font-size: 2.1rem; }
 h2 { font-size: 1.6rem; }
 h3 { font-size: 1.25rem; }
@@ -102,4 +121,56 @@ small, .small { font-size: 0.85rem; }
 .form-control:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+}
+
+/* Orange utility classes */
+.text-orange {
+  color: var(--orange-main) !important;
+}
+
+.border-orange {
+  border-color: var(--orange-main) !important;
+}
+
+/* Make sure images inside team cards behave nicely */
+.team-image-wrapper img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Team card centering */
+.team-card .card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* keep content starting from top but centered horizontally */
+  min-height: 360px; /* ensure consistent card heights; tweak as needed */
+}
+
+/* If you want the image itself centered as a fixed square, use this helper */
+.team-card .team-image-wrapper {
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-top: 10px auto 8px auto;
+}
+
+.team-card .team-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%; /* keep circular portraits — remove if you want rectangular */
+}
+
+/* Nudge portrait crop so heads aren't cropped off — adjust the second value (Y) as needed */
+:root {
+  --team-portrait-object-position-y: 10%;
+}
+.team-card .team-image-wrapper img {
+  object-position: 50% var(--team-portrait-object-position-y);
 }
