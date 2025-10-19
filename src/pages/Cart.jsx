@@ -1,10 +1,9 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { Container, Row, Col, Button, Image, Form, ListGroup, Card, Badge, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { orderService } from '../lib/api';
 import Swal from 'sweetalert2';
-// Feature flag: set VITE_ENABLE_LEGACY_CONFIRM=true to show legacy quick-confirm button
-const enableLegacyConfirm = import.meta.env.VITE_ENABLE_LEGACY_CONFIRM === 'true';
+// KHQR is scan-only by default. Legacy manual/quick-confirm buttons removed.
 import { getImageUrl } from '../lib/utils';
 import { LocaleContext } from '../contexts/LocaleContext';
 import { useCart } from '../contexts/CartContext';
@@ -55,6 +54,8 @@ function Cart() {
   const [khqrData, setKhqrData] = useState(null);
   const [khqrPollingTimer, setKhqrPollingTimer] = useState(null);
   const [khqrPollingCount, setKhqrPollingCount] = useState(0);
+  const [currentOrderId, setCurrentOrderId] = useState(null);
+  const sseRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -70,6 +71,82 @@ function Cart() {
       }
     };
   }, [khqrPollingTimer]);
+
+  // Subscribe to server-sent events for payment notifications for the current order.
+  // Use `currentOrderId` so we open a single EventSource per order instead of recreating on polling updates.
+  useEffect(() => {
+    if (!currentOrderId) return;
+    const orderId = currentOrderId;
+
+    try {
+      // close previous if any
+      if (sseRef.current) {
+        sseRef.current.close();
+        sseRef.current = null;
+      }
+
+  // Use explicit backend base if VITE_API_BASE not provided to avoid dev-proxy/SSE issues
+  const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
+  const url = `${apiBase}/api/orders/${orderId}/events`;
+  const es = new EventSource(url);
+      sseRef.current = es;
+  console.debug('Opening SSE to', url);
+
+  es.onopen = () => console.debug('SSE connection opened for order', orderId);
+  es.onmessage = (m) => console.debug('SSE generic message', m);
+
+      es.addEventListener('payment', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          console.debug('SSE payment event received', data);
+          // basic check and success flow
+          if (data && (data.status === 'success' || data.status === 'payment' || data.verified === true)) {
+            // stop timers
+            if (khqrPollingTimer) clearInterval(khqrPollingTimer);
+            if (sseRef.current) {
+              try { sseRef.current.close(); } catch (err) {}
+              sseRef.current = null;
+              console.debug('Closed SSE connection after payment');
+            }
+            localStorage.removeItem('cart');
+            setKhqrData(null);
+            setCurrentOrderId(null);
+            // Immediately navigate to confirmation and show a success toast/modal (don't wait for user click)
+            try {
+              navigate('/order-confirmation');
+            } catch (e) {
+              console.warn('Navigation failed after payment', e);
+            }
+            Swal.fire({
+              title: 'Payment received',
+              text: 'Payment completed successfully — thank you!',
+              icon: 'success',
+              timer: 2000,
+              showConfirmButton: false
+            });
+          }
+        } catch (err) {
+          console.warn('Failed to parse SSE payment event', err);
+        }
+      });
+
+      es.onerror = (err) => {
+        // on error close and cleanup
+        console.warn('SSE connection error for order', orderId, err);
+        try { es.close(); } catch (e) {}
+        sseRef.current = null;
+      };
+    } catch (err) {
+      console.warn('SSE subscribe failed', err);
+    }
+
+    return () => {
+      if (sseRef.current) {
+        try { sseRef.current.close(); } catch (e) {}
+        sseRef.current = null;
+      }
+    };
+  }, [currentOrderId]);
 
   const { currency, convertPrice, tProduct } = useContext(LocaleContext);
 
@@ -117,12 +194,34 @@ function Cart() {
         const khqrResponse = await orderService.generateKhqrCode(orderId, subtotal + shipping);
         // defensive: some environments or proxies may wrap the response differently
         const payload = khqrResponse?.data || khqrResponse;
-        console.debug('KHQR response payload:', payload);
-        setKhqrData(payload);
+  console.debug('KHQR response payload:', payload);
+  setKhqrData(payload);
+  // Open SSE subscription for this order so we receive payment events in real-time
+  setCurrentOrderId(orderId);
+
+            // Immediately fetch current status once to pick up any payments that may have occurred
+            try {
+              const initialStatus = await orderService.getKhqrPaymentStatus(orderId);
+              console.debug('Initial KHQR status for', orderId, initialStatus?.data || initialStatus);
+              if (initialStatus && initialStatus.data && initialStatus.data.collected !== undefined) {
+                setKhqrData(prev => ({ ...(prev || {}), collected: initialStatus.data.collected, total: initialStatus.data.total, payments: initialStatus.data.payments || [] }));
+                if (initialStatus.data.status === 'complete' || initialStatus.data.status === 'completed') {
+                  // close subscription and navigate
+                  if (khqrPollingTimer) clearInterval(khqrPollingTimer);
+                  setCurrentOrderId(null);
+                  localStorage.removeItem('cart');
+                  navigate('/order-confirmation');
+                  return;
+                }
+              }
+            } catch (err) {
+              console.warn('Initial status fetch failed', err);
+            }
 
         const pollTimer = setInterval(async () => {
           try {
             const statusResponse = await orderService.getKhqrPaymentStatus(orderId);
+            console.debug('Polled KHQR status for', orderId, statusResponse?.data || statusResponse);
             // Handle multiple-payment / partial status
             const st = statusResponse.data.status;
             // If backend returns collected/total/payments, merge into khqrData so UI can show progress
@@ -132,6 +231,8 @@ function Cart() {
 
             if (st === 'complete' || st === 'completed') {
               clearInterval(pollTimer);
+              // ensure SSE subscription is closed
+              setCurrentOrderId(null);
               localStorage.removeItem('cart');
               navigate('/order-confirmation');
             }
@@ -501,9 +602,13 @@ function Cart() {
                       variant="outline-secondary"
                       className="px-4 py-2 rounded-pill"
                       onClick={() => {
+                        // stop polling timer
                         if (khqrPollingTimer) {
                           clearInterval(khqrPollingTimer);
                         }
+                        // close SSE subscription (cleanup handled by effect)
+                        setCurrentOrderId(null);
+                        // reset UI state
                         setKhqrData(null);
                         setKhqrPollingTimer(null);
                         setKhqrPollingCount(0);
@@ -512,91 +617,9 @@ function Cart() {
                       <i className="bi bi-x-circle me-2"></i>
                       Cancel Payment
                     </Button>
-                    <Button
-                      variant="outline-primary"
-                      className="ms-3 px-4 py-2 rounded-pill"
-                      onClick={async () => {
-                        // Manual confirm: use SweetAlert2 to collect transactionRef then call server callback
-                        try {
-                          const orderId = khqrData.orderId || khqrData.orderID || khqrData.id;
-                          const { value: transactionRef } = await Swal.fire({
-                            title: 'Enter Bakong transaction reference (from your bank/app):',
-                            input: 'text',
-                            inputPlaceholder: 'e.g. TRX123456789',
-                            showCancelButton: true,
-                            confirmButtonText: 'Confirm',
-                            cancelButtonText: 'Cancel',
-                            inputValidator: (value) => {
-                              if (!value) return 'Transaction reference is required';
-                              return null;
-                            }
-                          });
-
-                          if (!transactionRef) {
-                            // user cancelled or didn't provide input
-                            return;
-                          }
-
-                          const payload = {
-                            orderId,
-                            qrString: khqrData.qrString,
-                            amount: khqrData.amount,
-                            currency: khqrData.currency || 'USD',
-                            transactionRef
-                          };
-
-                          const resp = await orderService.confirmBakongCallback(payload);
-                          if (resp.data && resp.data.status === 'success') {
-                            if (khqrPollingTimer) clearInterval(khqrPollingTimer);
-                            localStorage.removeItem('cart');
-                            navigate('/order-confirmation');
-                          } else {
-                            console.error('Server did not confirm payment', resp);
-                            Swal.fire('Verification failed', 'Payment verification failed. Please ensure you actually completed the payment.', 'error');
-                          }
-                        } catch (err) {
-                          console.error('Error confirming payment with server:', err);
-                          Swal.fire('Error', 'Payment verification failed. Please try again or contact support.', 'error');
-                        }
-                      }}
-                    >
-                      <i className="bi bi-check-circle me-2"></i>
-                      I already paid — Confirm
-                    </Button>
-                    {enableLegacyConfirm && (
-                      <Button
-                        variant="outline-success"
-                        className="ms-3 px-4 py-2 rounded-pill"
-                        onClick={async () => {
-                          // Legacy quick confirm: directly persist to /orders/{id}/bakong
-                          if (!window.confirm('Use legacy quick-confirm to persist payment immediately? This bypasses server-side verification.')) return;
-                          try {
-                            const orderId = khqrData.orderId || khqrData.orderID || khqrData.id;
-                            const payload = {
-                              orderId,
-                              qrString: khqrData.qrString,
-                              amount: khqrData.amount,
-                              currency: khqrData.currency || 'USD'
-                            };
-                            const resp = await orderService.placeBakongPayment(orderId, payload);
-                            if (resp.data && resp.data.status === 'success') {
-                              if (khqrPollingTimer) clearInterval(khqrPollingTimer);
-                              localStorage.removeItem('cart');
-                              navigate('/order-confirmation');
-                            } else {
-                              console.error('Legacy persist failed', resp);
-                              alert('Legacy persist failed. See console for details.');
-                            }
-                          } catch (err) {
-                            console.error('Error calling legacy persist:', err);
-                            alert('Legacy persist failed. See console for details.');
-                          }
-                        }}
-                      >
-                        <i className="bi bi-lightning-charge me-2"></i>
-                        Quick confirm (legacy)
-                      </Button>
-                    )}
+                    {/* Manual confirm / legacy quick-confirm removed to make KHQR scan-only.
+                        Payments should be recorded by the backend via /api/bakong/scan or /api/bakong/callback
+                        and the frontend will receive real-time notification via SSE (/api/orders/{id}/events). */}
                   </div>
                 ) : (
                   <Form onSubmit={handleCheckout}>

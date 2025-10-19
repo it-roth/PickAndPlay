@@ -9,8 +9,44 @@
   min-height: 100vh;
 }
 
+/* Admin Layout Styles */
+.admin-layout {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+/* Fixed left sidebar + scrollable content
+   - Sidebar is fixed to the viewport (top/bottom/left)
+   - Main content gets a left margin equal to the sidebar width and becomes the scroll container
+*/
+.admin-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 260px;
+  background: linear-gradient(180deg, #212529, #343a40);
+  color: #fff;
+  padding: 1rem;
+  overflow: auto; /* allow sidebar to scroll independently if its content grows */
+  z-index: 1000;
+}
+
+.admin-sidebar .admin-nav-link {
+  color: #e9ecef;
+}
+
 .admin-main-content {
+  margin-left: 260px; /* keep content to the right of fixed sidebar */
+  height: 100vh; /* make it a full-height scroll container */
+  overflow: auto; /* only this area should scroll */
+  padding: 0; /* inner padding handled by .admin-content-inner */
+  background-color: #f8f9fa;
+}
+
+.admin-content-inner {
   padding: 2rem;
+  min-height: 100%;
 }
 
 .admin-header {
@@ -38,4 +74,30 @@
 .admin-nav-link.active {
   background-color: #007bff;
   color: #ffffff;
+}
+
+/* Make sure the overall layout doesn't add extra vertical scrolling */
+.admin-layout {
+  min-height: 100vh;
+}
+
+@media (max-width: 992px) {
+  /* On small screens the sidebar becomes horizontal (stacked) and flows with the page */
+  .admin-sidebar {
+    position: relative;
+    width: 100%;
+    height: auto;
+    bottom: auto;
+  }
+  .admin-main-content {
+    margin-left: 0;
+    height: auto;
+    overflow: visible;
+    padding: 1rem;
+  }
+}
+
+/* When admin layout is active, remove any global top padding (e.g. from navbar.css) */
+body.admin-no-top-padding {
+  padding-top: 0 !important;
 }

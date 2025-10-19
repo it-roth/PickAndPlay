@@ -24,8 +24,22 @@ function AdminLayout({ children }) {
     if (token) {
       authService.getCurrentUser()
         .then(response => {
-          setUser(response.data);
-          setIsAdmin(response.data.role === 'ADMIN');
+          const u = response.data;
+          setUser(u);
+          // Flexible admin detection: accept 'ADMIN' or 'admin' or roles arrays containing ADMIN
+          const roleVal = u && (u.role || u.roles || u.authorities || u.rolesList);
+          const isAdminDetected = (() => {
+            if (!roleVal) return false;
+            if (typeof roleVal === 'string') {
+              return roleVal.toUpperCase() === 'ADMIN';
+            }
+            if (Array.isArray(roleVal)) {
+              return roleVal.some(r => String(r).toUpperCase() === 'ADMIN');
+            }
+            return false;
+          })();
+
+          setIsAdmin(isAdminDetected);
           // Check if using dev credentials
           setIsDevMode(token === 'dev-admin-token');
         })
@@ -42,6 +56,14 @@ function AdminLayout({ children }) {
     }
   }, [navigate]);
 
+  // Add a class to body to remove global top padding while admin is active
+  useEffect(() => {
+    document.body.classList.add('admin-no-top-padding');
+    return () => {
+      document.body.classList.remove('admin-no-top-padding');
+    };
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
@@ -52,89 +74,68 @@ function AdminLayout({ children }) {
   };
 
   if (!user || !isAdmin) {
-    return null; // Will redirect to login
+    // If user not authenticated, let effect handle redirect.
+    if (!user) return null;
+
+    // Authenticated but not admin — show a helpful message instead of a blank page
+    console.debug('AdminLayout: authenticated user without admin role', user);
+    return (
+      <Container className="py-5 text-center">
+        <h3>Access denied</h3>
+        <p>You are signed in but do not have admin privileges.</p>
+        <p>
+          <strong>Role returned:</strong> {String(user?.role || (user?.roles && JSON.stringify(user.roles)) || 'none')}
+        </p>
+        <div className="mt-3">
+          <Button variant="primary" onClick={() => navigate('/')}>Return to store</Button>
+        </div>
+      </Container>
+    );
   }
 
   return (
-    <div className="min-vh-100 bg-light">
-      {/* Dev Mode Banner */}
-      {isDevMode && (
-        <div className="bg-warning text-dark">
-          <Container fluid className="d-flex justify-content-center align-items-center py-1">
-            <small>
-              <i className="bi bi-code-slash me-1"></i>
-              Development Mode - Logged in as Dev Admin
-            </small>
-          </Container>
+    <div className="admin-layout d-flex">
+      {/* Left Sidebar */}
+  <aside className="admin-sidebar p-3 d-flex flex-column text-white">
+        <div className="mb-4 d-flex align-items-center">
+          <img src={logoImage} alt="logo" style={{ width: 40, height: 'auto' }} className="me-2" />
+          <div>
+            <div className="fw-bold">PickAndPlay Admin</div>
+            {isDevMode && <small className="text-warning">Dev Mode</small>}
+          </div>
         </div>
-      )}
 
-      {/* Admin Navbar */}
-      <Navbar bg="dark" variant="dark" expand="lg" className="admin-navbar">
-        <Container fluid>
-          {/* Logo */}
-          <Navbar.Brand as={Link} to="/admin/dashboard" className="d-flex align-items-center">
-            <img 
-              src={logoImage} 
-              alt="PickAndPlay Admin" 
-              style={{ height: '30px', width: 'auto' }}
-              className="me-2"
-            />
-            <span className="fw-bold">PickAndPlay Admin</span>
-          </Navbar.Brand>
+        <nav className="flex-grow-1">
+          <Link to="/admin/dashboard" className={`admin-nav-link ${isActive('/admin/dashboard')}`}>
+            <i className="bi bi-speedometer2 me-2"></i> Dashboard
+          </Link>
+          <Link to="/admin/products" className={`admin-nav-link ${isActive('/admin/products')}`}>
+            <i className="bi bi-box me-2"></i> Products
+          </Link>
+          <Link to="/admin/orders" className={`admin-nav-link ${isActive('/admin/orders')}`}>
+            <i className="bi bi-receipt me-2"></i> Orders
+          </Link>
+          <Link to="/admin/users" className={`admin-nav-link ${isActive('/admin/users')}`}>
+            <i className="bi bi-people me-2"></i> Users
+          </Link>
+        </nav>
 
-          {/* Admin Navigation */}
-          <Navbar.Toggle aria-controls="admin-navbar-nav" />
-          <Navbar.Collapse id="admin-navbar-nav">
-            <Nav className="me-auto">
-              <Nav.Link as={Link} to="/admin/dashboard" className={isActive("/admin/dashboard")}>
-                <i className="bi bi-speedometer2 me-1"></i>
-                Dashboard
-              </Nav.Link>
-              <Nav.Link as={Link} to="/admin/products" className={isActive("/admin/products")}>
-                <i className="bi bi-box me-1"></i>
-                Products
-              </Nav.Link>
-              <Nav.Link as={Link} to="/admin/orders" className={isActive("/admin/orders")}>
-                <i className="bi bi-receipt me-1"></i>
-                Orders
-              </Nav.Link>
-              <Nav.Link as={Link} to="/admin/users" className={isActive("/admin/users")}>
-                <i className="bi bi-people me-1"></i>
-                Users
-              </Nav.Link>
-            </Nav>
+        <div className="mt-auto">
+          <div className="mb-2">
+            <strong>{user.firstName} {user.lastName}</strong>
+          </div>
+          <div className="d-flex gap-2">
+            <Button variant="light" size="sm" as={Link} to="/">View Store</Button>
+            <Button variant="outline-light" size="sm" onClick={handleLogout}>Logout</Button>
+          </div>
+        </div>
+      </aside>
 
-            {/* User Menu */}
-            <Nav>
-              <Dropdown align="end">
-                <Dropdown.Toggle variant="outline-light" className="d-flex align-items-center">
-                  <i className="bi bi-person-circle me-2"></i>
-                  {user.firstName} {user.lastName}
-                  <i className="bi bi-chevron-down ms-2"></i>
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                  <Dropdown.Item as={Link} to="/admin/dashboard">
-                    <i className="bi bi-speedometer2 me-2"></i>Dashboard
-                  </Dropdown.Item>
-                  <Dropdown.Divider />
-                  <Dropdown.Item as={Link} to="/">
-                    <i className="bi bi-shop me-2"></i>View Store
-                  </Dropdown.Item>
-                  <Dropdown.Divider />
-                  <Dropdown.Item onClick={handleLogout}>
-                    <i className="bi bi-box-arrow-right me-2"></i>Logout
-                  </Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
-            </Nav>
-          </Navbar.Collapse>
-        </Container>
-      </Navbar>
-
-      {/* Main Content */}
-      <main className="admin-main-content">
-        {children}
+      {/* Main content area (scrollable) */}
+      <main className="admin-main-content flex-grow-1" role="main" aria-label="Admin main content">
+        <div className="admin-content-inner">
+          {children}
+        </div>
       </main>
     </div>
   );

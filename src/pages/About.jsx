@@ -7,29 +7,30 @@ import guitarTeam2 from "../assets/images/team/team-member2.jpg";
 import guitarTeam3 from "../assets/images/team/team-member3.jpg";
 
 function About() {
-  const teamMembers = [
-    {
-      id: 1,
-      name: "Leng Saroth",
-      role: "Project Manager",
-      bio: "Roth has over 8 years of experience in full-stack development and is passionate about creating seamless user experiences.",
-      image: guitarTeam1,
-    },
-    {
-      id: 2,
-      name: "Sarah Williams",
-      role: "UI/UX Designer",
-      bio: "Sarah brings creative design solutions with expertise in creating intuitive interfaces and engaging user experiences.",
-      image: guitarTeam2,
-    },
-    {
-      id: 3,
-      name: "Michael Chen",
-      role: "Project Manager",
-      bio: "Michael coordinates all aspects of the project and ensures that we deliver quality products on schedule.",
-      image: guitarTeam3,
-    },
-  ];
+ const teamMembers = [
+  {
+    id: 1,
+    name: "Leng Saroth",
+    role: "Project Lead",
+    bio: "Roth oversees all aspects of the project, from backend to frontend, ensuring everything runs smoothly with a focus on high-quality results.",
+    image: guitarTeam1,
+  },
+  {
+    id: 2,
+    name: "Pen Khemaraktumpoir",
+    role: "UI/UX Designer",
+    bio: "Tumpoir focuses exclusively on user interface and experience design, ensuring every layout, color, and interaction is intuitive and visually appealing.",
+    image: guitarTeam2,
+  },
+  {
+    id: 3,
+    name: "Oeung Panha",
+    role: "Frontend Developer",
+    bio: "Panha is responsible for the frontend development, turning design concepts into responsive and interactive web interfaces.",
+    image: guitarTeam3,
+  },
+];
+
 
   return (
     <div className="about-page-container">
@@ -54,7 +55,7 @@ function About() {
           transition={{ duration: 1 }}
           className="position-relative z-1 px-3"
         >
-          <h1 className="display-3 fw-bold mb-3 text-gradient">
+          <h1 className="display-3 fw-bold mb-3 text-orange">
             About Pick & Play
           </h1>
           <p className="fs-4">Quality Guitars for Musicians at Every Level</p>
@@ -110,24 +111,28 @@ function About() {
                   whileHover={{ y: -10, scale: 1.03 }}
                   transition={{ type: "spring", stiffness: 200 }}
                 >
-                  <Card className="border-0 shadow-lg mb-4 rounded-4">
+                    <Card className="team-card border-0 shadow-lg mb-4 rounded-4">
                     <Card.Body className="text-center p-4">
-                      <Image
-                        src={member.image}
-                        alt={member.name}
-                        className="rounded-circle mb-3 border border-3 border-success shadow-sm"
-                        style={{
-                          width: "160px",
-                          height: "160px",
-                          objectFit: "cover",
-                        }}
-                      />
+                      <div className="team-image-wrapper">
+                        <Image
+                          src={member.image}
+                          alt={member.name}
+                          className="rounded-circle mb-3 border border-3 border-orange shadow-sm"
+                          style={{
+                            height: "180px",
+                            width: "180px",
+                            objectFit: "cover",
+                          }}
+                        />
+                      </div>
 
-                      <h4 className="fw-bold text-orange">{member.name}</h4>
-                      <h6 className="text-success fw-semibold mb-3">
-                        {member.role}
-                      </h6>
-                      <p className="text-muted small">{member.bio}</p>
+                      <div className="p-4">
+                        <h4 className="fw-bold text-orange">{member.name}</h4>
+                        <h6 className="text-orange fw-semibold mb-3">
+                          {member.role}
+                        </h6>
+                        <p className="text-muted small">{member.bio}</p>
+                      </div>
                     </Card.Body>
                   </Card>
                 </motion.div>
@@ -170,7 +175,7 @@ function About() {
                   transition={{ duration: 0.3 }}
                   className="p-4 bg-white rounded-4 shadow-sm h-100"
                 >
-                  <div className="text-success mb-3">{value.icon}</div>
+                  <div className="text-orange mb-3">{value.icon}</div>
                   <h4 className="fw-bold text-orange">{value.title}</h4>
                   <p className="text-muted">{value.desc}</p>
                 </motion.div>

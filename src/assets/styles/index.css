@@ -122,3 +122,55 @@ small, .small { font-size: 0.85rem; }
   border-color: var(--primary-color);
   box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
 }
+
+/* Orange utility classes */
+.text-orange {
+  color: var(--orange-main) !important;
+}
+
+.border-orange {
+  border-color: var(--orange-main) !important;
+}
+
+/* Make sure images inside team cards behave nicely */
+.team-image-wrapper img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Team card centering */
+.team-card .card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* keep content starting from top but centered horizontally */
+  min-height: 360px; /* ensure consistent card heights; tweak as needed */
+}
+
+/* If you want the image itself centered as a fixed square, use this helper */
+.team-card .team-image-wrapper {
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-top: 10px auto 8px auto;
+}
+
+.team-card .team-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%; /* keep circular portraits — remove if you want rectangular */
+}
+
+/* Nudge portrait crop so heads aren't cropped off — adjust the second value (Y) as needed */
+:root {
+  --team-portrait-object-position-y: 10%;
+}
+.team-card .team-image-wrapper img {
+  object-position: 50% var(--team-portrait-object-position-y);
+}
