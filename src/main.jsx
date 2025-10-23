@@ -1,3 +1,4 @@
+import './lib/console-suppress'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './assets/styles/index.css'
@@ -10,3 +11,4 @@ createRoot(document.getElementById('root')).render(
     <AppWithProviders />
   </StrictMode>
 )
+window.__SUPPRESS_CONSOLE = false

@@ -2,6 +2,8 @@
  * Utility functions for the application
  */
 
+import logger from './logger';
+
 /**
  * Combine class names conditionally
  * @param {...(string|undefined|null|boolean)} classes 
@@ -52,32 +54,74 @@ export function generateId() {
  * @returns {string}
  */
 export function getImageUrl(imagePath) {
-  if (!imagePath) return null;
+  // Debug logging for development
+  if (import.meta.env.DEV) {
+    logger.debug('🖼️ getImageUrl called with:', {
+      input: imagePath,
+      inputType: typeof imagePath,
+      isArray: Array.isArray(imagePath),
+      isEmpty: !imagePath,
+      stringValue: String(imagePath)
+    });
+  }
+
+  if (!imagePath) {
+    if (import.meta.env.DEV) logger.debug('🚫 getImageUrl: No imagePath provided');
+    return null;
+  }
 
   // If an array was provided, pick the first entry
   let path = imagePath;
   if (Array.isArray(imagePath)) {
     path = imagePath.length > 0 ? imagePath[0] : null;
+    if (import.meta.env.DEV) logger.debug('📋 getImageUrl: Array input, extracted:', path);
   }
 
   // If the image is an object with a url/path property, use it
   if (path && typeof path === 'object') {
+    const originalPath = path;
     path = path.url || path.path || path.filename || null;
+    if (import.meta.env.DEV) logger.debug('🔧 getImageUrl: Object input, extracted:', { originalPath, extractedPath: path });
   }
 
-  if (!path) return null;
+  if (!path) {
+    if (import.meta.env.DEV) logger.debug('🚫 getImageUrl: No valid path after processing');
+    return null;
+  }
 
   // If already an absolute URL or data URI, return as-is
   if (typeof path === 'string' && (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:') || path.startsWith('/')) ) {
+    if (import.meta.env.DEV) logger.debug('✅ getImageUrl: Already absolute URL, returning as-is:', path);
     return path;
   }
 
   // URL encode the image path to handle spaces and special characters
-  const encodedPath = encodeURIComponent(String(path));
+  // If the backend accidentally returned a full filesystem path (Windows backslashes
+  // or forward slashes), use only the filename portion so the /images/** handler can
+  // resolve the file on the server. This avoids producing URLs like /images/C%3A%5C....
+  let normalized = String(path);
+  if (import.meta.env.DEV) logger.debug('🔧 getImageUrl: Normalizing path:', { original: path, normalized });
+  
+  // If it's a URL already, leave it alone (handled above).
+  // Extract basename if it contains path separators
+  if (normalized.includes('/') || normalized.includes('\\')) {
+    const parts = normalized.split(/[/\\]+/);
+    normalized = parts[parts.length - 1];
+    if (import.meta.env.DEV) logger.debug('📁 getImageUrl: Extracted filename from path:', { parts, filename: normalized });
+  }
+  const encodedPath = encodeURIComponent(normalized);
 
   // Allow backend host to be configured via Vite env var for non-local setups
   const backendHost = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
-  return `${backendHost.replace(/\/$/, '')}/images/${encodedPath}`;
+  const finalUrl = `${backendHost.replace(/\/$/, '')}/images/${encodedPath}`;
+  
+  if (import.meta.env.DEV) logger.debug('🎯 getImageUrl: Final URL constructed:', {
+    backendHost,
+    encodedPath,
+    finalUrl
+  });
+  
+  return finalUrl;
 }
 
 /**

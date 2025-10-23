@@ -6,6 +6,7 @@ import { authService, productService } from '../lib/api';
 function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,6 +22,7 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     try {
@@ -29,13 +31,31 @@ function Login() {
         password: formData.password
       });
 
-      // Store token
-      localStorage.setItem('token', response.data.token);
+      // Backend may return different shapes depending on implementation.
+      // Support both: { ok: true, token, role } and { status: 'success', data: { token, ... } }
+      const respData = response?.data || {};
 
-      // Try to fetch current user and store
+      // Extract token from possible shapes
+      let token = null;
+      if (respData.token) token = respData.token;
+      else if (respData.ok && respData.token) token = respData.token;
+      else if (respData.status === 'success' && respData.data && respData.data.token) token = respData.data.token;
+
+      if (!token) {
+        setError(respData.message || respData.error || 'Invalid credentials');
+        setLoading(false);
+        return;
+      }
+
+      // Store token (frontend expects 'token' key in localStorage)
+      localStorage.setItem('token', token);
+
+      // Try to fetch current user and store only the inner user object
       try {
         const me = await authService.getCurrentUser();
-        localStorage.setItem('userData', JSON.stringify(me.data));
+        // backend returns { status: 'success', data: user } — normalize to user object
+        const userObj = me?.data?.data || me?.data || null;
+        if (userObj) localStorage.setItem('userData', JSON.stringify(userObj));
       } catch (e) {
         // ignore
       }
@@ -44,7 +64,11 @@ function Login() {
       try {
         const respRole = response.data?.role;
         if (respRole && String(respRole).toLowerCase().includes('admin')) {
-          navigate('/admin/dashboard');
+          setError('');
+          setSuccess('Admin login successful! Redirecting to dashboard...');
+          setTimeout(() => {
+            navigate('/admin/dashboard');
+          }, 1000);
           return;
         }
       } catch (e) { }
@@ -64,7 +88,7 @@ function Login() {
                 if (found) found.quantity = (found.quantity || 0) + (qty || 1);
                 else cart.push({ ...prod, quantity: qty || 1 });
                 localStorage.setItem('cart', JSON.stringify(cart));
-                window.dispatchEvent(new CustomEvent('cartUpdated'));
+                window.dispatchEvent(new CustomEvent('cartUpdated')); // Restore cart update event
               }
             } catch (e) {
               // ignore fetch/add errors
@@ -74,8 +98,18 @@ function Login() {
         }
       } catch (e) { }
 
-      // Default redirect
-      navigate(from);
+      // Show success message with automatic redirect and refresh
+      setError(''); // Clear any previous errors
+      setSuccess('Login successful! Redirecting...');
+      
+      // Use window.location.href to force a full page refresh when going to homepage
+      setTimeout(() => {
+        if (from === '/') {
+          window.location.href = '/'; // This will refresh the homepage
+        } else {
+          navigate(from); // For other pages, use normal navigation
+        }
+      }, 1000);
     } catch (error) {
       import('../lib/logger').then(({ default: logger }) => logger.error('Authentication error:', error));
       setError(error.response?.data?.message || 'Login failed. Please check your credentials.');
@@ -94,6 +128,7 @@ function Login() {
         <Card.Header as="h4" className="text-center">Login</Card.Header>
         <Card.Body>
           {error && <Alert variant="danger">{error}</Alert>}
+          {success && <Alert variant="success">{success}</Alert>}
 
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
@@ -111,7 +146,7 @@ function Login() {
             </div>
 
             <div className="d-grid mb-3">
-              <Button variant="primary" type="submit" disabled={loading}>
+              <Button className="auth-link-cta" type="submit" disabled={loading}>
                 {loading ? 'Processing...' : 'Login'}
               </Button>
             </div>

@@ -21,13 +21,13 @@ import Register from '../pages/Register';
 import About from '../pages/About';
 import ScrollToTop from '../components/ScrollToTop';
 import OrderConfirmation from '../pages/OrderConfirmation';
+import Profile from '../pages/Profile';
 
 // Admin Pages
 import Dashboard from '../pages/Admin/Dashboard';
 import ProductList from '../pages/Admin/ProductList';
 import AddProduct from '../pages/Admin/AddProduct';
 import EditProduct from '../pages/Admin/EditProduct';
-import Orders from '../pages/Admin/Orders';
 import Users from '../pages/Admin/Users';
 
 // Not Found Page
@@ -35,7 +35,6 @@ import NotFound from '../pages/NotFound';
 
 function App() {
   const { user, isAuthenticated } = useAuth();
-  const isAdmin = user?.role === 'ADMIN';
 
   return (
     <Router>
@@ -58,6 +57,7 @@ function App() {
                 <Route path="/category/:categoryName" element={<Shop />} />
                 <Route path="/product/:id" element={<ProductDetails />} />
                 <Route path="/cart" element={<Cart />} />
+                <Route path="/profile" element={<Profile />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/order-confirmation" element={<OrderConfirmation />} />
@@ -70,14 +70,13 @@ function App() {
 
         {/* Admin routes with AdminLayout (no navbar/footer) */}
         <Route path="/admin/*" element={
-          <ProtectedRoute adminOnly={true}>
+          <ProtectedRoute>
             <AdminLayout>
               <Routes>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/products" element={<ProductList />} />
                 <Route path="/products/add" element={<AddProduct />} />
                 <Route path="/products/edit/:id" element={<EditProduct />} />
-                <Route path="/orders" element={<Orders />} />
                 <Route path="/users" element={<Users />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

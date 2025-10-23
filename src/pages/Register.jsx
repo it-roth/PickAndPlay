@@ -10,6 +10,7 @@ function Register() {
     confirmPassword: '',
     firstName: '',
     lastName: '',
+    gender: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,15 +34,24 @@ function Register() {
       return;
     }
 
+    // Validate gender is selected
+    if (!formData.gender) {
+      setError('Please select a gender');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await authService.register({
+      const payload = {
         email: formData.email,
         password: formData.password,
         firstName: formData.firstName,
-        lastName: formData.lastName
-      });
+        lastName: formData.lastName,
+        gender: formData.gender
+      };
+      console.debug('Register payload:', payload);
+      const response = await authService.register(payload);
 
       // If registration auto-logs in
       if (response.data.token) {
@@ -122,6 +132,21 @@ function Register() {
             </Row>
 
             <Form.Group className="mb-3">
+              <Form.Label>Gender</Form.Label>
+              <Form.Select
+                name="gender"
+                value={formData.gender}
+                onChange={handleInputChange}
+                required
+              >
+                <option value="">Select Gender</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+                <option value="O">Other</option>
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
               <Form.Label>Email Address</Form.Label>
               <Form.Control
                 type="email"
@@ -161,7 +186,7 @@ function Register() {
 
             <div className="d-grid mb-3">
               <Button
-                variant="primary"
+                className="auth-link-cta"
                 type="submit"
                 disabled={loading}
               >

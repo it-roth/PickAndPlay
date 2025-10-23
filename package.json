@@ -15,6 +15,7 @@
     "axios": "^1.12.2",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
+    "eventsource": "^4.0.0",
     "framer-motion": "^12.23.24",
     "qrcode.react": "^4.2.0",
     "react": "^19.1.1",

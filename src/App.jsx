@@ -19,17 +19,18 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import About from './pages/About';
 import Contact from './pages/Contact';
+import Profile from './pages/Profile';
 
 // Admin Pages
 import Dashboard from './pages/Admin/Dashboard';
 import ProductList from './pages/Admin/ProductList';
 import AddProduct from './pages/Admin/AddProduct';
 import EditProduct from './pages/Admin/EditProduct';
-import Orders from './pages/Admin/Orders';
 import Users from './pages/Admin/Users';
 
 // Not Found Page
-import NotFound from './pages/NotFound';
+// NotFound page removed. Use admin NotFound as fallback or simple inline placeholder
+import AdminNotFound from './pages/Admin/NotFound';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -87,6 +88,10 @@ function App() {
             <Route path="/cart" element={<Cart />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            {/* Temporarily unprotected for debugging; revert after verifying route works */}
+            <Route path="/profile" element={<Profile />} />
+            {/* Debug-only unprotected profile route to help diagnose 404s in dev */}
+            {import.meta.env.DEV && <Route path="/profile-debug" element={<Profile />} />}
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             
@@ -111,7 +116,7 @@ function App() {
                 <EditProduct />
               </ProtectedRoute>
             } />
-            <Route path="/admin/orders" element={
+            <Route path="/admin/cart" element={
               <ProtectedRoute adminOnly={true}>
                 <Orders />
               </ProtectedRoute>
@@ -123,7 +128,7 @@ function App() {
             } />
             
             {/* Catch-all route for 404 */}
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={<AdminNotFound />} />
           </Routes>
         </main>
   {!hideShell && <Footer />}

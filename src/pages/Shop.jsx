@@ -284,9 +284,8 @@ function Shop() {
                 </Form.Group>
                 
                 <Button 
-                  variant="secondary" 
+                  className="auth-link-cta w-100 text-center"
                   type="button" 
-                  className="w-100"
                   onClick={resetFilters}
                 >
                   {t('reset_filters')}
@@ -313,7 +312,7 @@ function Shop() {
               {pagedProducts.length === 0 ? (
                 <div className="text-center py-5">
                   <p>{t('no_products')}</p>
-                  <Button onClick={resetFilters} variant="outline-primary">{t('reset_filters')}</Button>
+                  <Button onClick={resetFilters} className="auth-link-cta">{t('reset_filters')}</Button>
                 </div>
               ) : (
                 <>

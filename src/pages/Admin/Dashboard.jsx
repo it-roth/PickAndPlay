@@ -53,196 +53,206 @@ function Dashboard() {
   }
 
   return (
-    <Container fluid className="py-4">
-      <h1 className="mb-4">Admin Dashboard</h1>
-      
-      {/* Stats cards */}
-      <Row className="mb-4">
-        <Col md={4}>
-          <Card className="text-center h-100 mb-3">
-            <Card.Body>
-              <h2>{stats.totalProducts}</h2>
-              <p className="mb-0">Total Products</p>
-            </Card.Body>
-            <Card.Footer>
-              <Button as={Link} to="/admin/products" variant="outline-primary" size="sm">
+    <div>
+      {/* Modern Header */}
+      <div className="admin-header">
+        <Row className="align-items-center">
+          <Col>
+            <h1 className="h2 mb-1 accent-text">
+              <i className="bi bi-grid-1x2-fill me-3"></i>
+              Admin Dashboard
+            </h1>
+            <p className="text-muted mb-0">Monitor your store's performance and manage operations</p>
+          </Col>
+          <Col xs="auto">
+            <div className="d-flex gap-2">
+              <Button as={Link} to="/admin/products/add" className="modern-btn">
+                <i className="bi bi-plus-lg me-2"></i>
+                Add Product
+              </Button>
+            </div>
+          </Col>
+        </Row>
+      </div>
+
+      {/* Modern Stats Cards */}
+      <Row className="mb-5 g-4">
+        <Col lg={3} md={6}>
+          <div className="stat-card ">
+            <div className="mb-3">
+              <i className="bi bi-box-seam-fill accent-text" style={{fontSize: '2.5rem'}}></i>
+            </div>
+            <div className="stat-number">{stats.totalProducts}</div>
+            <div className="stat-label">Total Products</div>
+            <div className="mt-3">
+              <Button as={Link} to="/admin/products" className="modern-btn" size="sm">
                 Manage Products
               </Button>
-            </Card.Footer>
-          </Card>
+            </div>
+          </div>
         </Col>
-        <Col md={4}>
-          <Card className="text-center h-100 mb-3">
-            <Card.Body>
-              <h2>{stats.totalOrders}</h2>
-              <p className="mb-0">Total Orders</p>
-            </Card.Body>
-            <Card.Footer>
-              <Button as={Link} to="/admin/orders" variant="outline-primary" size="sm">
+        <Col lg={3} md={6}>
+          <div className="stat-card">
+            <div className="mb-3">
+              <i className="bi bi-cart-check-fill" style={{fontSize: '2.5rem', color: '#28a745'}}></i>
+            </div>
+            <div className="stat-number">{stats.totalOrders}</div>
+            <div className="stat-label">Total Orders</div>
+            <div className="mt-3">
+              <Button as={Link} to="/admin/orders" className="modern-btn" size="sm">
                 View Orders
               </Button>
-            </Card.Footer>
-          </Card>
+            </div>
+          </div>
         </Col>
-        <Col md={4}>
-          <Card className="text-center h-100 mb-3">
-            <Card.Body>
-              <h2>{stats.totalUsers}</h2>
-              <p className="mb-0">Total Users</p>
-            </Card.Body>
-            <Card.Footer>
-              <Button as={Link} to="/admin/users" variant="outline-primary" size="sm">
+        <Col lg={3} md={6}>
+          <div className="stat-card">
+            <div className="mb-3">
+              <i className="bi bi-people-fill" style={{fontSize: '2.5rem', color: '#007bff'}}></i>
+            </div>
+            <div className="stat-number">{stats.totalUsers}</div>
+            <div className="stat-label">Total Users</div>
+            <div className="mt-3">
+              <Button as={Link} to="/admin/users" className="modern-btn" size="sm">
                 Manage Users
               </Button>
-            </Card.Footer>
-          </Card>
+            </div>
+          </div>
+        </Col>
+        <Col lg={3} md={6}>
+          <div className="stat-card low-stock-card">
+            <div className="mb-3">
+              <i className="bi bi-exclamation-triangle-fill low-stock-icon"></i>
+            </div>
+            <div className="stat-number">{stats.lowStockProducts.length}</div>
+            <div className="stat-label low-stock-label">Low Stock Items</div>
+            <div className="mt-3">
+              <Button
+                as={Link}
+                to="/admin/products"
+                className="modern-btn no-border"
+                size="sm"
+                style={{ border: 'none', boxShadow: 'none', outline: 'none' }}
+              >
+                Check Stock
+              </Button>
+            </div>
+          </div>
         </Col>
       </Row>
       
-      {/* Recent orders */}
-      <Row className="mb-4">
-        <Col md={6}>
-          <Card>
-            <Card.Header>
-              <h5 className="mb-0">Recent Orders</h5>
-            </Card.Header>
-            <Card.Body>
+      {/* Recent orders and low stock */}
+      <Row className="g-4">
+        <Col lg={8}>
+          <div className="modern-card">
+            <div className="p-4">
+              <div className="d-flex align-items-center justify-content-between mb-4">
+                <h5 className="mb-0 accent-text">
+                  <i className="bi bi-clock-history me-2"></i>
+                  Recent Orders
+                </h5>
+                  <Button as={Link} to="/admin/orders" variant="link" className="accent-text">
+                  View All <i className="bi bi-arrow-right"></i>
+                </Button>
+              </div>
               {stats.recentOrders.length > 0 ? (
-                <table className="table table-hover">
-                  <thead>
-                    <tr>
-                      <th>Order ID</th>
-                      <th>Customer</th>
-                      <th>Date</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.recentOrders.map(order => (
-                      <tr key={order.id}>
-                        <td>
-                          <Link to={`/admin/orders/${order.id}`}>#{order.id}</Link>
-                        </td>
-                        <td>{order.customerName}</td>
-                        <td>{new Date(order.date).toLocaleDateString()}</td>
-                        <td>${order.totalAmount.toFixed(2)}</td>
-                        <td>
-                          <span className={`badge bg-${getStatusBadge(order.status)}`}>
-                            {order.status}
-                          </span>
-                        </td>
+                <div className="table-responsive">
+                  <table className="table table-hover mb-0">
+                    <thead className="accent-gradient">
+                      <tr>
+                        <th style={{color: 'white', border: 'none'}}>Order ID</th>
+                        <th style={{color: 'white', border: 'none'}}>Customer</th>
+                        <th style={{color: 'white', border: 'none'}}>Date</th>
+                        <th style={{color: 'white', border: 'none'}}>Amount</th>
+                        <th style={{color: 'white', border: 'none'}}>Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {stats.recentOrders.map(order => (
+                        <tr key={order.id}>
+                          <td>
+                            <Link to={`/admin/orders/${order.id}`} className="accent-text">#{order.id}</Link>
+                          </td>
+                          <td>{order.customerName}</td>
+                          <td>{new Date(order.date).toLocaleDateString()}</td>
+                          <td>${order.totalAmount.toFixed(2)}</td>
+                          <td>
+                            <span className={`badge bg-${getStatusBadge(order.status)}`}>
+                              {order.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
-                <p className="text-center">No recent orders.</p>
+                <p className="text-center text-muted">No recent orders.</p>
               )}
-            </Card.Body>
-            <Card.Footer>
-              <Button as={Link} to="/admin/orders" variant="link" className="p-0">
-                View All Orders
-              </Button>
-            </Card.Footer>
-          </Card>
+            </div>
+          </div>
         </Col>
         
-        {/* Low stock products */}
-        <Col md={6}>
-          <Card>
-            <Card.Header>
-              <h5 className="mb-0">Low Stock Alert</h5>
-            </Card.Header>
-            <Card.Body>
+        <Col lg={4}>
+          <div className="modern-card">
+            <div className="p-4">
+              <div className="d-flex align-items-center justify-content-between mb-4">
+                <h5 className="mb-0 low-stock-heading">
+                  <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                  Low Stock Alert
+                </h5>
+                <Button as={Link} to="/admin/products" variant="link" className="accent-text ">
+                  View All <i className="bi bi-arrow-right"></i>
+                </Button>
+              </div>
               {stats.lowStockProducts.length > 0 ? (
-                <table className="table table-hover">
-                  <thead>
-                    <tr>
-                      <th>Product</th>
-                      <th>Category</th>
-                      <th>Stock</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.lowStockProducts.map(product => (
-                      <tr key={product.id}>
-                        <td>
-                          <Link to={`/admin/products/edit/${product.id}`}>{product.name}</Link>
-                        </td>
-                        <td>{product.category}</td>
-                        <td>
-                          <span className={`badge bg-${product.stockQuantity <= 5 ? 'danger' : 'warning'}`}>
-                            {product.stockQuantity}
-                          </span>
-                        </td>
-                        <td>
-                          <Button 
-                            as={Link}
-                            to={`/admin/products/edit/${product.id}`} 
-                            size="sm" 
-                            variant="outline-primary"
-                          >
-                            Update
-                          </Button>
-                        </td>
+                <div className="table-responsive">
+                  <table className="table table-hover mb-0">
+                    <thead className="accent-gradient">
+                      <tr>
+                        <th style={{color: 'white', border: 'none'}}>Product</th>
+                        <th style={{color: 'white', border: 'none'}}>Stock</th>
+                        <th style={{color: 'white', border: 'none'}}>Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {stats.lowStockProducts.map(product => (
+                        <tr key={product.id}>
+                          <td>
+                            <Link to={`/admin/products/edit/${product.id}`} className="accent-text">
+                              {product.name}
+                            </Link>
+                          </td>
+                          <td>
+                            <span className={`badge bg-${product.stockQuantity <= 5 ? 'danger' : 'warning'}`}>
+                              {product.stockQuantity}
+                            </span>
+                          </td>
+                          <td>
+                            <Button 
+                              as={Link}
+                              to={`/admin/products/edit/${product.id}`} 
+                              size="sm" 
+                              className="modern-btn"
+                              style={{fontSize: '0.75rem', padding: '0.25rem 0.5rem'}}
+                            >
+                              Update
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
-                <p className="text-center">No low stock products.</p>
+                <p className="text-center text-muted">No low stock products.</p>
               )}
-            </Card.Body>
-            <Card.Footer>
-              <Button as={Link} to="/admin/products" variant="link" className="p-0">
-                View All Products
-              </Button>
-            </Card.Footer>
-          </Card>
+            </div>
+          </div>
         </Col>
       </Row>
       
-      {/* Quick actions */}
-      <Card className="mb-4">
-        <Card.Header>
-          <h5 className="mb-0">Quick Actions</h5>
-        </Card.Header>
-        <Card.Body>
-          <Row>
-            <Col sm={3} className="mb-3">
-              <div className="d-grid">
-                <Button as={Link} to="/admin/products/add" variant="primary">
-                  Add New Product
-                </Button>
-              </div>
-            </Col>
-            <Col sm={3} className="mb-3">
-              <div className="d-grid">
-                <Button as={Link} to="/admin/orders" variant="outline-secondary">
-                  View Orders
-                </Button>
-              </div>
-            </Col>
-            <Col sm={3} className="mb-3">
-              <div className="d-grid">
-                <Button as={Link} to="/admin/users" variant="outline-secondary">
-                  Manage Users
-                </Button>
-              </div>
-            </Col>
-            <Col sm={3} className="mb-3">
-              <div className="d-grid">
-                <Button as={Link} to="/" variant="outline-secondary">
-                  View Store
-                </Button>
-              </div>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card>
-    </Container>
+    </div>
   );
 }
 

@@ -1,5 +1,5 @@
-import { useState, useEffect, useContext, useRef } from 'react';
-import { Container, Row, Col, Button, Image, Form, ListGroup, Card, Badge, Alert } from 'react-bootstrap';
+import { useState, useEffect, useContext, useRef, useMemo } from 'react';
+import { Container, Row, Col, Button, Image, Form, ListGroup, Card, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { orderService } from '../lib/api';
 import Swal from 'sweetalert2';
@@ -7,6 +7,7 @@ import Swal from 'sweetalert2';
 import { getImageUrl } from '../lib/utils';
 import { LocaleContext } from '../contexts/LocaleContext';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
 import BakongImg from '../assets/images/bakong.png';
 
@@ -14,6 +15,15 @@ function Cart() {
   // Image component with fallback
   function ImageWithFallback({ src, alt, ...props }) {
     const [errored, setErrored] = useState(false);
+    
+    if (import.meta.env.DEV && (errored || !src)) {
+      console.log(`🚫 ImageWithFallback - Image not showing for ${alt}:`, {
+        src,
+        errored,
+        reason: !src ? 'No src provided' : 'Image failed to load'
+      });
+    }
+    
     if (!src || errored) {
       return (
         <div
@@ -37,15 +47,48 @@ function Cart() {
         fluid
         rounded
         loading="lazy"
-        onError={() => setErrored(true)}
+        onError={(e) => {
+          if (import.meta.env.DEV) {
+            console.log(`❌ Image failed to load for ${alt}:`, {
+              src,
+              error: e,
+              naturalWidth: e.target?.naturalWidth,
+              naturalHeight: e.target?.naturalHeight
+            });
+          }
+          setErrored(true);
+        }}
+        onLoad={(e) => {
+          if (import.meta.env.DEV) {
+            console.log(`✅ Image loaded successfully for ${alt}:`, {
+              src,
+              naturalWidth: e.target?.naturalWidth,
+              naturalHeight: e.target?.naturalHeight
+            });
+          }
+        }}
         style={{ objectFit: 'cover', height: '100%' }}
         {...props}
       />
     );
   }
 
-  const { items: cartItems, updateQuantity: updateCartQuantity, removeItem: removeCartItem } = useCart();
-  const [subtotal, setSubtotal] = useState(0);
+  const { items: cartItems, updateQuantity: updateCartQuantity, removeItem: removeCartItem, clearCart, refreshCartFromBackend } = useCart();
+  const { user, isAuthenticated } = useAuth();
+  
+  // Refresh cart with complete backend data if images are missing
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      const needsComplete = cartItems.some(item => !item.images || !item.name);
+      if (needsComplete && refreshCartFromBackend) {
+        if (import.meta.env.DEV) {
+          console.log('🔄 Cart items missing complete data, refreshing from backend');
+        }
+        refreshCartFromBackend();
+      }
+    }
+  }, [cartItems.length, refreshCartFromBackend]);
+
   const [shipping, setShipping] = useState(0);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutForm, setCheckoutForm] = useState({
@@ -55,13 +98,25 @@ function Cart() {
   const [khqrPollingTimer, setKhqrPollingTimer] = useState(null);
   const [khqrPollingCount, setKhqrPollingCount] = useState(0);
   const [currentOrderId, setCurrentOrderId] = useState(null);
+  // Auto-scan / auto-callback state (one-shot 10s auto-callback for dev/demo)
+  const [autoRemaining, setAutoRemaining] = useState(0);
+  const AUTO_DURATION = 25; // seconds (one-shot)
+  const [autoTriggered, setAutoTriggered] = useState(false);
+  const [lastAutoOrderId, setLastAutoOrderId] = useState(null);
+  // Prevent duplicate checkout submissions
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
+  // Auto-scan is enabled by default for dev/demo; we keep the one-shot behavior
+  // always enabled for the flow you requested. Remove manual dev-toggle/test UI.
+  const [autoScanEnabled] = useState(true);
+
   const sseRef = useRef(null);
+  const autoTimerRef = useRef(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    setSubtotal(total);
-    // setShipping(total >= 1 ? 0 : 0.01);
+  // Compute subtotal from cart items (memoized)
+  const subtotal = useMemo(() => {
+    return cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   }, [cartItems]);
 
   useEffect(() => {
@@ -72,33 +127,32 @@ function Cart() {
     };
   }, [khqrPollingTimer]);
 
-  // Subscribe to server-sent events for payment notifications for the current order.
-  // Use `currentOrderId` so we open a single EventSource per order instead of recreating on polling updates.
+
   useEffect(() => {
     if (!currentOrderId) return;
     const orderId = currentOrderId;
 
-    try {
-      // close previous if any
-      if (sseRef.current) {
-        sseRef.current.close();
-        sseRef.current = null;
-      }
+      try {
+        // close previous if any
+        if (sseRef.current) {
+          sseRef.current.close();
+          sseRef.current = null;
+        }
 
-  // Use explicit backend base if VITE_API_BASE not provided to avoid dev-proxy/SSE issues
-  const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
-  const url = `${apiBase}/api/orders/${orderId}/events`;
-  const es = new EventSource(url);
-      sseRef.current = es;
-  console.debug('Opening SSE to', url);
+        // Use explicit backend base if VITE_API_BASE not provided to avoid dev-proxy/SSE issues
+        const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
+        const url = `${apiBase}/api/orders/${orderId}/events`;
+        const es = new EventSource(url);
+        sseRef.current = es;
+        if (import.meta.env.DEV) console.debug('Opening SSE to', url);
 
-  es.onopen = () => console.debug('SSE connection opened for order', orderId);
-  es.onmessage = (m) => console.debug('SSE generic message', m);
+        es.onopen = () => { if (import.meta.env.DEV) console.debug('SSE connection opened for order', orderId); };
+        es.onmessage = (m) => { if (import.meta.env.DEV) console.debug('SSE generic message', m); };
 
       es.addEventListener('payment', (e) => {
         try {
           const data = JSON.parse(e.data);
-          console.debug('SSE payment event received', data);
+          if (import.meta.env.DEV) console.debug('SSE payment event received', data);
           // basic check and success flow
           if (data && (data.status === 'success' || data.status === 'payment' || data.verified === true)) {
             // stop timers
@@ -106,16 +160,16 @@ function Cart() {
             if (sseRef.current) {
               try { sseRef.current.close(); } catch (err) {}
               sseRef.current = null;
-              console.debug('Closed SSE connection after payment');
+              if (import.meta.env.DEV) console.debug('Closed SSE connection after payment');
             }
-            localStorage.removeItem('cart');
+            try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) {} }
             setKhqrData(null);
             setCurrentOrderId(null);
             // Immediately navigate to confirmation and show a success toast/modal (don't wait for user click)
             try {
               navigate('/order-confirmation');
             } catch (e) {
-              console.warn('Navigation failed after payment', e);
+              if (import.meta.env.DEV) console.warn('Navigation failed after payment', e);
             }
             Swal.fire({
               title: 'Payment received',
@@ -126,18 +180,18 @@ function Cart() {
             });
           }
         } catch (err) {
-          console.warn('Failed to parse SSE payment event', err);
+          if (import.meta.env.DEV) console.warn('Failed to parse SSE payment event', err);
         }
       });
 
       es.onerror = (err) => {
         // on error close and cleanup
-        console.warn('SSE connection error for order', orderId, err);
+        if (import.meta.env.DEV) console.warn('SSE connection error for order', orderId, err);
         try { es.close(); } catch (e) {}
         sseRef.current = null;
       };
     } catch (err) {
-      console.warn('SSE subscribe failed', err);
+      if (import.meta.env.DEV) console.warn('SSE subscribe failed', err);
     }
 
     return () => {
@@ -147,6 +201,86 @@ function Cart() {
       }
     };
   }, [currentOrderId]);
+
+  const hasKhqr = Boolean(khqrData);
+  useEffect(() => {
+    // If KHQR removed, clear any running timer and reset trigger
+    if (!hasKhqr) {
+      try { if (autoTimerRef.current) { clearInterval(autoTimerRef.current); autoTimerRef.current = null; } } catch (e) {}
+      setAutoRemaining(0);
+      setAutoTriggered(false);
+      return;
+    }
+
+    // Determine an order id snapshot. Prefer explicit currentOrderId, fallback to khqrData.orderId
+    const resolvedOrderId = currentOrderId || (khqrData && khqrData.orderId) || null;
+    if (!resolvedOrderId) {
+      return;
+    }
+
+    // If we already started auto for this order, do nothing
+    if (autoTriggered || lastAutoOrderId === resolvedOrderId) {
+      return;
+    }
+
+    // Only run in dev when autoScanEnabled is true
+    if (!import.meta.env.DEV || !autoScanEnabled) {
+      return;
+    }
+
+    // Start timer
+    let remaining = AUTO_DURATION;
+    setAutoRemaining(remaining);
+    setAutoTriggered(true);
+    setLastAutoOrderId(resolvedOrderId);
+
+    // Capture a snapshot of khqrData so payload is stable
+    const khqrSnapshot = { ...(khqrData || {}) };
+
+    const tick = () => {
+      remaining -= 1;
+      setAutoRemaining(remaining);
+  if (remaining <= 0) {
+  try { if (autoTimerRef.current) { clearInterval(autoTimerRef.current); autoTimerRef.current = null; } } catch (e) {}
+  setAutoRemaining(0);
+
+        (async () => {
+          const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
+          const payload = {
+            orderId: resolvedOrderId,
+            qrString: (khqrSnapshot.qrString || khqrSnapshot.qr) || '',
+            transactionRef: 'auto-dev-' + Date.now(),
+            amount: khqrSnapshot.amount || (subtotal + shipping),
+            currency: khqrSnapshot.currency || 'USD'
+          };
+          try {
+            const url = `${apiBase}/api/bakong/scan`;
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            // ignore response body; SSE or polling will confirm
+          } catch (err) {
+            console.warn('Auto callback failed', err);
+          } finally {
+            try { if (khqrPollingTimer) clearInterval(khqrPollingTimer); } catch (e) {}
+            try { if (sseRef.current) { sseRef.current.close(); sseRef.current = null; } } catch (e) {}
+            try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) {} }
+            setKhqrData(null);
+            setCurrentOrderId(null);
+            try { navigate('/order-confirmation'); } catch (e) {}
+            Swal.fire({ title: 'Payment Successful ✅', text: 'We received the confirmation from the bank. Thank you — your payment is complete.', icon: 'success', timer: 2200, showConfirmButton: false });
+          }
+        })();
+      }
+    };
+
+    if (!autoTimerRef.current) {
+      autoTimerRef.current = setInterval(tick, 1000);
+    }
+
+    return () => {
+      // leave running timer until KHQR removed or order changes
+    };
+  }, [Boolean(khqrData), currentOrderId, autoScanEnabled]);
+  
 
   const { currency, convertPrice, tProduct } = useContext(LocaleContext);
 
@@ -168,60 +302,143 @@ function Cart() {
   };
 
   const handleCheckout = async (e) => {
-    e.preventDefault();
+    e && e.preventDefault && e.preventDefault();
+
+    // prevent duplicate rapid submissions
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
 
     if (!cartItems || cartItems.length === 0) {
       alert('Your cart is empty. Add items before checking out.');
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
       return;
     }
 
     try {
-      const orderData = {
-        customerName: "Guest Customer",
-        shippingAddress: "Pick up at store",
-        totalAmount: subtotal + shipping,
-        paymentMethod: checkoutForm.paymentMethod,
-        items: cartItems.map(item => ({
-          productId: item.id,
-          quantity: item.quantity
-        }))
-      };
+      // Clear any previous KHQR data and order state to ensure clean checkout
+      setKhqrData(null);
+      setCurrentOrderId(null);
+      if (khqrPollingTimer) {
+        try { clearInterval(khqrPollingTimer); } catch (e) {}
+        setKhqrPollingTimer(null);
+      }
 
-      const orderResponse = await orderService.placeOrder(orderData);
-      const orderId = orderResponse.data.id;
+      // populate customerName from stored user if available
+      let customerName = 'Guest Customer';
+      try {
+        const ud = localStorage.getItem('userData');
+        if (ud) {
+          const parsed = JSON.parse(ud);
+          customerName = parsed?.name || parsed?.fullName || parsed?.username || customerName;
+        }
+      } catch (e) {}
+
+      // Check if we have an existing pending order to reuse
+      const existingPendingOrderId = localStorage.getItem('pendingOrderId');
+      let orderId;
+
+      if (existingPendingOrderId) {
+        // Try to reuse the existing pending order
+        try {
+          const existingOrderResponse = await orderService.getOrderById(existingPendingOrderId);
+          const existingOrder = existingOrderResponse?.data || existingOrderResponse;
+          
+          if (existingOrder && existingOrder.status === 'pending') {
+            // Update the existing order with final checkout details
+            orderId = existingOrder.id;
+            
+            // Update order items to ensure they match current cart
+            const normalizedItems = cartItems.map(item => ({
+              productId: Number(item.id),
+              quantity: Number(item.quantity),
+              unitPrice: String(item.price || 0)
+            }));
+            
+            await orderService.updateOrderItems(orderId, normalizedItems);
+            
+            if (import.meta.env.DEV) console.debug('Reusing existing pending order:', orderId);
+          } else {
+            throw new Error('Existing order not found or not pending');
+          }
+        } catch (e) {
+          if (import.meta.env.DEV) console.warn('Failed to reuse pending order, creating new one:', e);
+          // Fall back to creating a new order
+          orderId = null;
+        }
+      }
+
+      // If we couldn't reuse an existing order, create a new one
+      if (!orderId) {
+        const orderData = {
+          customerName,
+          shippingAddress: "Pick up at store",
+          totalAmount: subtotal + shipping,
+          paymentMethod: checkoutForm.paymentMethod,
+          items: cartItems.map(item => ({
+            productId: item.id,
+            quantity: item.quantity
+          }))
+        };
+
+        const orderResponse = await orderService.placeOrder(orderData);
+        orderId = orderResponse.data.id;
+        
+        if (import.meta.env.DEV) console.debug('Created new order:', orderId);
+      }
+
+      // Clear the pending order ID since we now have a confirmed checkout order
+      try {
+        localStorage.removeItem('pendingOrderId');
+      } catch (e) {
+        // ignore localStorage errors
+      }
 
       if (checkoutForm.paymentMethod === 'khqr') {
         const khqrResponse = await orderService.generateKhqrCode(orderId, subtotal + shipping);
         // defensive: some environments or proxies may wrap the response differently
         const payload = khqrResponse?.data || khqrResponse;
-  console.debug('KHQR response payload:', payload);
-  setKhqrData(payload);
+        // Ensure the payload always includes the correct orderId
+        const khqrDataWithOrderId = { ...payload, orderId: orderId };
+  if (import.meta.env.DEV) console.debug('KHQR response payload:', khqrDataWithOrderId);
+  setKhqrData(khqrDataWithOrderId);
   // Open SSE subscription for this order so we receive payment events in real-time
   setCurrentOrderId(orderId);
 
             // Immediately fetch current status once to pick up any payments that may have occurred
-            try {
-              const initialStatus = await orderService.getKhqrPaymentStatus(orderId);
-              console.debug('Initial KHQR status for', orderId, initialStatus?.data || initialStatus);
+              try {
+                const initialStatus = await orderService.getKhqrPaymentStatus(orderId);
+                if (import.meta.env.DEV) console.debug('Initial KHQR status for', orderId, initialStatus?.data || initialStatus);
               if (initialStatus && initialStatus.data && initialStatus.data.collected !== undefined) {
                 setKhqrData(prev => ({ ...(prev || {}), collected: initialStatus.data.collected, total: initialStatus.data.total, payments: initialStatus.data.payments || [] }));
                 if (initialStatus.data.status === 'complete' || initialStatus.data.status === 'completed') {
                   // close subscription and navigate
                   if (khqrPollingTimer) clearInterval(khqrPollingTimer);
                   setCurrentOrderId(null);
-                  localStorage.removeItem('cart');
+                  try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) {} }
                   navigate('/order-confirmation');
                   return;
                 }
               }
             } catch (err) {
-              console.warn('Initial status fetch failed', err);
+              if (import.meta.env.DEV) console.warn('Initial status fetch failed', err);
             }
+
+        // Poll every 20 seconds for payment status. Stop after MAX_POLL_COUNT attempts.
+        const MAX_POLL_COUNT = 6; // ~2 minutes (6 * 20s)
+        // reset polling counter
+        setKhqrPollingCount(0);
+
+        // clear any existing timer first
+        if (khqrPollingTimer) {
+          try { clearInterval(khqrPollingTimer); } catch (e) {}
+        }
 
         const pollTimer = setInterval(async () => {
           try {
             const statusResponse = await orderService.getKhqrPaymentStatus(orderId);
-            console.debug('Polled KHQR status for', orderId, statusResponse?.data || statusResponse);
+            if (import.meta.env.DEV) console.debug('Polled KHQR status for', orderId, statusResponse?.data || statusResponse);
             // Handle multiple-payment / partial status
             const st = statusResponse.data.status;
             // If backend returns collected/total/payments, merge into khqrData so UI can show progress
@@ -233,38 +450,107 @@ function Cart() {
               clearInterval(pollTimer);
               // ensure SSE subscription is closed
               setCurrentOrderId(null);
-              localStorage.removeItem('cart');
+              try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) {} }
               navigate('/order-confirmation');
             }
 
-            // Continue polling up to timeout; show timeout message after 120 polls (~2 minutes)
+            // Continue polling up to timeout; show timeout message after MAX_POLL_COUNT polls (~MAX_POLL_COUNT*20s)
             setKhqrPollingCount(prev => {
-              if (prev >= 120) {
-                clearInterval(pollTimer);
+              const next = prev + 1;
+              if (next >= MAX_POLL_COUNT) {
+                try { clearInterval(pollTimer); } catch (e) {}
                 alert('Payment timeout. Please try again.');
-                return prev;
+                return next;
               }
-              return prev + 1;
+              return next;
             });
           } catch (error) {
-            console.error('Error checking payment status:', error);
+            if (import.meta.env.DEV) console.error('Error checking payment status:', error);
             clearInterval(pollTimer);
           }
-        }, 1000);
+        }, 20000);
         setKhqrPollingTimer(pollTimer);
       } else {
-        localStorage.removeItem('cart');
+        try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) {} }
         navigate('/order-confirmation');
       }
     } catch (error) {
-      console.error('Error placing order:', error);
+      if (import.meta.env.DEV) console.error('Error placing order:', error);
       alert('There was an error processing your order. Please try again.');
+    } finally {
+      // keep button disabled briefly to avoid accidental double-clicks
+      setTimeout(() => {
+        isSubmittingRef.current = false;
+        setIsSubmitting(false);
+      }, 800);
     }
   };
 
+  // Check if user is authenticated - cart should only be accessible to logged-in users
+  if (!isAuthenticated) {
+    return (
+      <Container className="py-mt-5 pt-6" style={{ paddingTop: '100px', minHeight: '60vh' }}>
+        <Row className="justify-content-center">
+          <Col md={6} className="text-center">
+            <div className="mb-4">
+              <div 
+                className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                style={{
+                  width: '120px',
+                  height: '120px',
+                  background: 'linear-gradient(135deg, #fff5f0 0%, #ffe8db 100%)'
+                }}
+              >
+                <i className="bi bi-person-lock" style={{ fontSize: '3.5rem', color: '#ff6600' }}></i>
+              </div>
+            </div>
+            <h2 className="mb-3 fw-bold">Sign In Required</h2>
+            <p className="text-muted mb-4" style={{ fontSize: '1.1rem' }}>
+              Please sign in to your account to access your shopping cart
+            </p>
+            <Button 
+              as={Link} 
+              to="/login" 
+              size="lg" 
+              className="border-0 fw-semibold px-5 py-3 rounded-pill me-3"
+              style={{ 
+                background: 'linear-gradient(135deg, #ff6600 0%, #ff8533 100%)',
+                boxShadow: '0 8px 24px rgba(255, 102, 0, 0.25)',
+                transition: 'all 0.3s ease',
+                fontSize: '1.1rem'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-3px)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(255, 102, 0, 0.35)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(255, 102, 0, 0.25)';
+              }}
+            >
+              <i className="bi bi-box-arrow-in-right me-2"></i>
+              Sign In
+            </Button>
+            <Button 
+              as={Link} 
+              to="/shop" 
+              variant="outline-secondary"
+              size="lg" 
+              className="fw-semibold px-5 py-3 rounded-pill"
+              style={{ fontSize: '1.1rem' }}
+            >
+              <i className="bi bi-bag-heart me-2"></i>
+              Continue Shopping
+            </Button>
+          </Col>
+        </Row>
+      </Container>
+    );
+  }
+
   if (cartItems.length === 0) {
     return (
-      <Container className="py-5" style={{ paddingTop: '120px', minHeight: '60vh' }}>
+      <Container className="py-mt-5 pt-6" style={{ paddingTop: '100px', minHeight: '60vh' }}>
         <Row className="justify-content-center">
           <Col md={6} className="text-center">
             <div className="mb-4">
@@ -283,29 +569,6 @@ function Cart() {
             <p className="text-muted mb-4" style={{ fontSize: '1.1rem' }}>
               Discover amazing products and start adding them to your cart
             </p>
-            <Button 
-              as={Link} 
-              to="/shop" 
-              size="lg" 
-              className="border-0 fw-semibold px-5 py-3 rounded-pill"
-              style={{ 
-                background: 'linear-gradient(135deg, #ff6600 0%, #ff8533 100%)',
-                boxShadow: '0 8px 24px rgba(255, 102, 0, 0.25)',
-                transition: 'all 0.3s ease',
-                fontSize: '1.1rem'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-3px)';
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(255, 102, 0, 0.35)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(255, 102, 0, 0.25)';
-              }}
-            >
-              <i className="bi bi-bag-heart-fill me-2"></i>
-              Start Shopping
-            </Button>
           </Col>
         </Row>
       </Container>
@@ -313,7 +576,7 @@ function Cart() {
   }
 
   return (
-    <Container className="py-5" style={{ paddingTop: '120px' }}>
+    <Container className="py-mt-5 pt-8" style={{ paddingTop: '120px' }}>
       {/* Modern Header */}
       <div className="mb-5">
         <div className="d-flex align-items-center mb-2">
@@ -375,7 +638,10 @@ function Cart() {
                           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
                         }}
                       >
-                        <ImageWithFallback src={getImageUrl(item.images)} alt={item.name} />
+                        <ImageWithFallback 
+                          src={getImageUrl(item.images)}
+                          alt={item.name} 
+                        />
                       </div>
                     </Col>
                     
@@ -572,12 +838,6 @@ function Cart() {
                           </div>
                         </div>
                         <div className="text-muted">
-                          Waiting for payment confirmation...
-                          {khqrData && khqrData.collected !== undefined && (
-                            <div className="mt-2 fw-semibold" style={{ color: '#cc5200' }}>
-                              Collected: {new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(khqrData.collected)} of {new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(khqrData.total)}
-                            </div>
-                          )}
                         </div>
                         {khqrData && khqrData.payments && khqrData.payments.length > 0 && (
                           <div className="mt-3 text-start">
@@ -617,6 +877,7 @@ function Cart() {
                       <i className="bi bi-x-circle me-2"></i>
                       Cancel Payment
                     </Button>
+                    {/* Auto-success fake trigger (developer/demo feature) — no manual dev UI here. */}
                     {/* Manual confirm / legacy quick-confirm removed to make KHQR scan-only.
                         Payments should be recorded by the backend via /api/bakong/scan or /api/bakong/callback
                         and the frontend will receive real-time notification via SSE (/api/orders/{id}/events). */}
@@ -627,6 +888,7 @@ function Cart() {
                       type="submit" 
                       size="lg" 
                       className="w-100 border-0 fw-semibold rounded-pill"
+                      disabled={isSubmitting}
                       style={{ 
                         background: 'linear-gradient(180deg, rgba(11, 34, 64, 0.98), rgba(11, 34, 64, 1))',
                         color: '#ffffff',

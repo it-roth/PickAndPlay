@@ -3,11 +3,9 @@ import { useEffect, useState } from 'react';
 import { authService } from '../lib/api';
 
 // This component protects routes that require authentication
-// If adminOnly is true, it also checks if the user has admin role
-function ProtectedRoute({ children, adminOnly = false }) {
+function ProtectedRoute({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -23,37 +21,6 @@ function ProtectedRoute({ children, adminOnly = false }) {
       try {
         const response = await authService.getCurrentUser();
         setIsAuthenticated(true);
-
-        // Robust admin detection: support user.role (string), user.roles (array), or authorities
-        const user = response.data;
-        const maybeRole = user?.role ?? user?.roles ?? user?.authorities;
-        let adminDetected = false;
-
-        if (Array.isArray(maybeRole)) {
-          adminDetected = maybeRole.some(r => String(r).toLowerCase().includes('admin'));
-        } else if (maybeRole) {
-          adminDetected = String(maybeRole).toLowerCase().includes('admin');
-        }
-
-        // Fallback: check localStorage userData if backend doesn't return role
-        if (!adminDetected) {
-          try {
-            const stored = localStorage.getItem('userData');
-            if (stored) {
-              const parsed = JSON.parse(stored);
-              const fallbackRole = parsed?.role ?? parsed?.roles ?? parsed?.authorities;
-              if (Array.isArray(fallbackRole)) {
-                adminDetected = fallbackRole.some(r => String(r).toLowerCase().includes('admin'));
-              } else if (fallbackRole) {
-                adminDetected = String(fallbackRole).toLowerCase().includes('admin');
-              }
-            }
-          } catch (e) {
-            // ignore parsing errors
-          }
-        }
-
-        setIsAdmin(adminDetected);
         setIsLoading(false);
       } catch (error) {
         localStorage.removeItem('token');
@@ -75,10 +42,7 @@ function ProtectedRoute({ children, adminOnly = false }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
-  if (adminOnly && !isAdmin) {
-    // Redirect to home if not admin
-    return <Navigate to="/" replace />;
-  }
+  // Removed admin role check - any authenticated user can access admin panel
   
   // Render the protected route if authenticated and has required role
   return children;

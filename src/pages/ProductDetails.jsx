@@ -134,7 +134,7 @@ function ProductDetails() {
                 >+</Button>
               </InputGroup>
 
-              <Button onClick={addToCart} disabled={!inStock || qty > stockQty} className="px-4" variant="primary">{t('addToCart')}</Button>
+              <Button onClick={addToCart} disabled={!inStock || qty > stockQty} className="auth-link-cta px-4">{t('addToCart')}</Button>
             </div>
 
             <div>

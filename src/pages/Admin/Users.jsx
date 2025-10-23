@@ -12,7 +12,8 @@ function Users() {
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userFormData, setUserFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     password: '',
     email: '',
     gender: '',
@@ -23,19 +24,32 @@ function Users() {
   
   const usersPerPage = 10;
   
+  // Helper to compute a display name from available fields
+  const getDisplayName = (u) => {
+    if (!u) return '';
+    if (u.name && String(u.name).trim() !== '') return String(u.name);
+    const first = u.firstName || u.first_name || '';
+    const last = u.lastName || u.last_name || '';
+    const full = `${first} ${last}`.trim();
+    return full || (u.email || '');
+  };
+
   // Filter users based on search term and gender
-  const filteredUsers = users.filter(user => {
-    // Search by name or email
-    const searchMatch = 
-      searchTerm === '' || 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Filter by gender
-    const genderMatch = roleFilter === '' || user.gender === roleFilter;
-    
-    return searchMatch && genderMatch;
-  });
+  // Only show users whose role contains 'user' (case-insensitive). This allows
+  // variations like 'user', 'users', 'ROLE_USER', etc. Admin roles will be hidden.
+  const filteredUsers = users
+    .filter(u => {
+      const role = (u.role || '').toString().toLowerCase();
+      return role.includes('user');
+    })
+    .filter(user => {
+      const lowerSearch = searchTerm.toLowerCase();
+      const nameValue = getDisplayName(user).toLowerCase();
+      const searchMatch = searchTerm === '' || nameValue.includes(lowerSearch) || (user.email || '').toLowerCase().includes(lowerSearch);
+
+      const genderMatch = roleFilter === '' || (user.gender || '').toString() === roleFilter;
+      return searchMatch && genderMatch;
+    });
   
   // Paginate users
   const indexOfLastUser = currentPage * usersPerPage;
@@ -47,10 +61,11 @@ function Users() {
     const fetchUsers = async () => {
       try {
         const response = await userService.getAllUsers();
-        setUsers(response.data);
+        // Keep the full list in state but the UI will only surface users with role USER
+        setUsers(response.data || []);
         setIsLoading(false);
       } catch (error) {
-        console.error('Error fetching users:', error);
+        if (import.meta.env.DEV && window.__SUPPRESS_CONSOLE === false) console.error('Error fetching users:', error);
         setIsLoading(false);
       }
     };
@@ -75,7 +90,8 @@ function Users() {
   const handleEditUser = (user) => {
     setSelectedUser(user);
     setUserFormData({
-      name: user.name,
+      firstName: user.firstName || user.first_name || (user.name ? String(user.name).split(' ').slice(0,1).join('') : ''),
+      lastName: user.lastName || user.last_name || (user.name ? String(user.name).split(' ').slice(1).join(' ') : ''),
       password: '', // Don't populate password for security
       email: user.email,
       gender: user.gender,
@@ -89,7 +105,8 @@ function Users() {
   const handleCreateUser = () => {
     setSelectedUser(null);
     setUserFormData({
-      name: '',
+      firstName: '',
+      lastName: '',
       password: '',
       email: '',
       gender: 'M',
@@ -101,14 +118,39 @@ function Users() {
   };
 
   const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    try {
+      const SwalModule = await import('sweetalert2');
+      const Swal = SwalModule.default || SwalModule;
+      const confirm = await Swal.fire({
+        title: 'Delete user?',
+        text: 'This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#dc3545'
+      });
+
+      if (!confirm.isConfirmed) return;
+
+      // optimistic update
+      const prev = users;
+      setUsers(prev.filter(u => u.id !== userId));
+
       try {
-        await userService.deleteUser(userId);
-        setUsers(users.filter(user => user.id !== userId));
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('Failed to delete user. Please try again.');
+        const resp = await userService.deleteUser(userId);
+        const notify = await import('../../lib/notify');
+        try { await notify.showSuccess(resp?.data?.message || 'User deleted'); } catch (e) {}
+      } catch (err) {
+        // restore
+        setUsers(prev);
+        const notify = await import('../../lib/notify');
+        const msg = err?.response?.data?.message || err?.message || 'Failed to delete user';
+        try { await notify.showError(msg); } catch (e) { alert(msg); }
       }
+    } catch (e) {
+      if (import.meta.env.DEV && window.__SUPPRESS_CONSOLE === false) console.error('delete user flow failed', e);
+      alert('Failed to delete user. Please try again.');
     }
   };
   
@@ -138,18 +180,33 @@ function Users() {
   const handleSaveUser = async () => {
     try {
       if (isCreating) {
-        // Create new user
-        const response = await userService.createUser(userFormData);
-        setUsers([...users, response.data]);
+        // Create new user using FormData with first_name/last_name
+        const fd = new FormData();
+        fd.append('first_name', userFormData.firstName || '');
+        fd.append('last_name', userFormData.lastName || '');
+        fd.append('password', userFormData.password || '');
+        fd.append('email', userFormData.email || '');
+        fd.append('gender', userFormData.gender ? String(userFormData.gender).charAt(0) : '');
+        if (userFormData.role) fd.append('role', userFormData.role);
+        if (userFormData.images && userFormData.images.length > 0) fd.append('images', userFormData.images[0]);
+        const response = await userService.createUser(fd);
+        // backend returns a success string; to keep UI updated, refetch or append from response if available
+        // We'll optimistically append using the created fields (server id may not be present)
+        setUsers(prev => [...prev, { id: response?.data?.id || Date.now(), firstName: userFormData.firstName, lastName: userFormData.lastName, email: userFormData.email, gender: userFormData.gender, role: userFormData.role, images: response?.data?.images || null }]);
       } else {
         // Update existing user
         if (!selectedUser) return;
-        await userService.updateUser(selectedUser.id, userFormData);
-        
-        // Update user in the state
-        const updatedUsers = users.map(user => 
-          user.id === selectedUser.id ? { ...user, ...userFormData, images: user.images } : user
-        );
+        const fd = new FormData();
+        fd.append('first_name', userFormData.firstName || '');
+        fd.append('last_name', userFormData.lastName || '');
+        fd.append('password', userFormData.password || '');
+        fd.append('email', userFormData.email || '');
+        if (userFormData.gender) fd.append('gender', String(userFormData.gender).charAt(0));
+        if (userFormData.role) fd.append('role', userFormData.role);
+        if (userFormData.images && userFormData.images.length > 0) fd.append('images', userFormData.images[0]);
+        await userService.updateUser(selectedUser.id, fd);
+        // Update user in state optimistically
+        const updatedUsers = users.map(u => u.id === selectedUser.id ? { ...u, firstName: userFormData.firstName, lastName: userFormData.lastName, email: userFormData.email, gender: userFormData.gender, images: u.images } : u);
         setUsers(updatedUsers);
       }
       
@@ -211,37 +268,43 @@ function Users() {
         </div>
       </div>
       
-      {/* Create User Button */}
-      <div className="mb-3">
-        <Button variant="primary" onClick={handleCreateUser}>
-          <i className="bi bi-plus-circle me-2"></i>
-          Create New User
-        </Button>
-      </div>
-      
       {isLoading ? (
         <div className="text-center py-5">
           <p>Loading users...</p>
         </div>
       ) : (
         <>
-          <Table responsive striped hover>
+          <Table responsive className="product-table users-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th style={{ width: 48 }}>#</th>
+                <th style={{ width: 260 }}>Profile Image</th>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Gender</th>
-                <th>Profile Image</th>
-                <th>Actions</th>
+                <th style={{ width: 100 }}>Gender</th>
+                <th style={{ width: 350 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {currentUsers.length > 0 ? (
-                currentUsers.map(user => (
+                currentUsers.map((user, idx) => (
                   <tr key={user.id}>
-                    <td>{user.id}</td>
-                    <td>{user.name}</td>
+                    <td>{indexOfFirstUser + idx + 1}</td>
+                    <td>
+                      {user.images ? (
+                        <img
+                          src={getImageUrl(user.images)}
+                          alt={user.name}
+                          className="rounded-circle"
+                          style={{ width: 44, height: 44, objectFit: 'cover', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+                        />
+                      ) : (
+                        <div className="no-image-placeholder rounded-circle" style={{ width: 44, height: 44 }}>
+                          <i className="bi bi-person text-muted" style={{ fontSize: '1.1rem' }} />
+                        </div>
+                      )}
+                    </td>
+                    <td>{getDisplayName(user)}</td>
                     <td>{user.email}</td>
                     <td>
                       <Badge bg={getGenderBadgeVariant(user.gender)}>
@@ -249,67 +312,43 @@ function Users() {
                       </Badge>
                     </td>
                     <td>
-                      {user.images ? (
-                        <img 
-                          src={getImageUrl(user.images)} 
-                          alt="Profile" 
-                          style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <span className="text-muted">No image</span>
-                      )}
-                    </td>
-                    <td>
-                      <Button 
-                        onClick={() => handleEditUser(user)} 
-                        variant="outline-primary" 
-                        size="sm"
-                        className="me-2"
-                      >
-                        <i className="bi bi-pencil-square me-1"></i>
-                        Edit
-                      </Button>
-                      <Button 
-                        onClick={() => handleDeleteUser(user.id)} 
-                        variant="outline-danger" 
-                        size="sm"
-                      >
-                        <i className="bi bi-trash me-1"></i>
-                        Delete
-                      </Button>
+                      <div className="d-flex justify-content-center gap-2">
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          <i className="bi bi-pencil-square me-1" /> Edit
+                        </Button>
+
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.id)}
+                        >
+                          <i className="bi bi-trash me-1" /> Delete
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="text-center">
-                    No users found.
+                  <td colSpan="6" className="text-center py-4">
+                    {searchTerm ? 'No users match your search criteria.' : 'No users available.'}
                   </td>
                 </tr>
               )}
             </tbody>
           </Table>
-          
-          {/* User summary */}
-          <div className="mb-4">
-            <p className="mb-0">
-              Showing {filteredUsers.length} of {users.length} users
-            </p>
-          </div>
-          
+
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="d-flex justify-content-center">
+            <div className="d-flex justify-content-center mt-3">
               <Pagination>
-                <Pagination.First 
-                  onClick={() => handlePageChange(1)} 
-                  disabled={currentPage === 1}
-                />
-                <Pagination.Prev 
-                  onClick={() => handlePageChange(currentPage - 1)} 
-                  disabled={currentPage === 1}
-                />
-                
+                <Pagination.First onClick={() => handlePageChange(1)} disabled={currentPage === 1} />
+                <Pagination.Prev onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} />
+
                 {Array.from({ length: totalPages }).map((_, index) => {
                   const pageNumber = index + 1;
                   if (
@@ -318,128 +357,70 @@ function Users() {
                     (pageNumber >= currentPage - 2 && pageNumber <= currentPage + 2)
                   ) {
                     return (
-                      <Pagination.Item
-                        key={pageNumber}
-                        active={pageNumber === currentPage}
-                        onClick={() => handlePageChange(pageNumber)}
-                      >
+                      <Pagination.Item key={pageNumber} active={pageNumber === currentPage} onClick={() => handlePageChange(pageNumber)}>
                         {pageNumber}
                       </Pagination.Item>
                     );
-                  } else if (
-                    pageNumber === currentPage - 3 ||
-                    pageNumber === currentPage + 3
-                  ) {
+                  }
+                  if (pageNumber === currentPage - 3 || pageNumber === currentPage + 3) {
                     return <Pagination.Ellipsis key={pageNumber} />;
                   }
                   return null;
                 })}
-                
-                <Pagination.Next 
-                  onClick={() => handlePageChange(currentPage + 1)} 
-                  disabled={currentPage === totalPages}
-                />
-                <Pagination.Last 
-                  onClick={() => handlePageChange(totalPages)} 
-                  disabled={currentPage === totalPages}
-                />
+
+                <Pagination.Next onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} />
+                <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />
               </Pagination>
             </div>
           )}
         </>
       )}
-      
-      {/* User Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
+      {/* Create / Edit modal */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>{isCreating ? 'Create New User' : 'Edit User'}</Modal.Title>
+          <Modal.Title>{isCreating ? 'Create User' : 'Edit User'}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
+            <div className="row">
+              <div className="col-md-6">
+                <Form.Group className="mb-3">
+                  <Form.Label>First name</Form.Label>
+                  <Form.Control name="firstName" value={userFormData.firstName} onChange={handleFormChange} />
+                </Form.Group>
+              </div>
+              <div className="col-md-6">
+                <Form.Group className="mb-3">
+                  <Form.Label>Last name</Form.Label>
+                  <Form.Control name="lastName" value={userFormData.lastName} onChange={handleFormChange} />
+                </Form.Group>
+              </div>
+            </div>
             <Form.Group className="mb-3">
-              <Form.Label>Name *</Form.Label>
-              <Form.Control
-                type="text"
-                name="name"
-                value={userFormData.name}
-                onChange={handleFormChange}
-                placeholder="Enter full name"
-                required
-              />
+              <Form.Label>Email</Form.Label>
+              <Form.Control name="email" value={userFormData.email} onChange={handleFormChange} />
             </Form.Group>
-            
             <Form.Group className="mb-3">
-              <Form.Label>Email *</Form.Label>
-              <Form.Control
-                type="email"
-                name="email"
-                value={userFormData.email}
-                onChange={handleFormChange}
-                placeholder="Enter email address"
-                required
-              />
+              <Form.Label>Password</Form.Label>
+              <Form.Control name="password" type="password" value={userFormData.password} onChange={handleFormChange} />
             </Form.Group>
-            
             <Form.Group className="mb-3">
-              <Form.Label>Password {isCreating ? '*' : '(leave blank to keep current)'}</Form.Label>
-              <Form.Control
-                type="password"
-                name="password"
-                value={userFormData.password}
-                onChange={handleFormChange}
-                placeholder={isCreating ? "Enter password" : "Enter new password (optional)"}
-                required={isCreating}
-              />
-            </Form.Group>
-            
-            <Form.Group className="mb-3">
-              <Form.Label>Gender *</Form.Label>
-              <Form.Select
-                name="gender"
-                value={userFormData.gender}
-                onChange={handleFormChange}
-                required
-              >
-                <option value="">Select Gender</option>
+              <Form.Label>Gender</Form.Label>
+              <Form.Select name="gender" value={userFormData.gender} onChange={handleFormChange}>
+                <option value="">Select gender</option>
                 <option value="M">Male</option>
                 <option value="F">Female</option>
               </Form.Select>
             </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Role *</Form.Label>
-              <Form.Select
-                name="role"
-                value={userFormData.role}
-                onChange={handleFormChange}
-                required
-              >
-                <option value="USER">User</option>
-                <option value="ADMIN">Admin</option>
-              </Form.Select>
-            </Form.Group>
-            
             <Form.Group className="mb-3">
               <Form.Label>Profile Image</Form.Label>
-              <Form.Control
-                type="file"
-                name="images"
-                onChange={handleFormChange}
-                accept="image/*"
-              />
-              <Form.Text className="text-muted">
-                Upload a profile image (optional)
-              </Form.Text>
+              <Form.Control name="images" type="file" accept="image/*" onChange={handleFormChange} />
             </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleSaveUser}>
-            {isCreating ? 'Create User' : 'Save Changes'}
-          </Button>
+          <Button variant="danger" onClick={() => setShowModal(false)}>Cancel</Button>
+          <Button variant="success" onClick={handleSaveUser}>{isCreating ? 'Create' : 'Update'}</Button>
         </Modal.Footer>
       </Modal>
     </Container>

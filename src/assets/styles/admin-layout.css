@@ -1,35 +1,37 @@
-/* Admin Layout Styles */
+/* Modern Admin Layout Styles with Orange Theme */
 .admin-layout {
   min-height: 100vh;
-  background-color: #f8f9fa;
+   background: linear-gradient(180deg, rgba(11, 34, 64, 0.98), rgba(11, 34, 64, 1));
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-.admin-sidebar {
-  background-color: #343a40;
-  min-height: 100vh;
+/* Color tokens to make the dashboard match the dark navy sidebar */
+:root {
+  --sidebar-bg: #0b2240; /* matches existing sidebar */
+  --accent-500: #3ea0ff; /* primary blue accent */
+  --accent-300: #9fd6ff; /* lighter accent */
+  --muted-700: #0f172a; /* dark text */
+  --muted-400: #64748b; /* label text */
+  --surface-100: #ffffff; /* card surface */
+  --surface-200: #f4f8ff; /* subtle cool background */
+  --shadow-accent: rgba(62,160,255,0.12);
 }
 
-/* Admin Layout Styles */
-.admin-layout {
-  min-height: 100vh;
-  background-color: #f8f9fa;
-}
-
-/* Fixed left sidebar + scrollable content
-   - Sidebar is fixed to the viewport (top/bottom/left)
-   - Main content gets a left margin equal to the sidebar width and becomes the scroll container
-*/
+/* Fixed left sidebar + scrollable content */
 .admin-sidebar {
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
-  width: 260px;
-  background: linear-gradient(180deg, #212529, #343a40);
+  width: 280px;
+  background: linear-gradient(180deg, rgba(11, 34, 64, 0.98), rgba(11, 34, 64, 1));
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(62,160,255,0.08);
   color: #fff;
-  padding: 1rem;
-  overflow: auto; /* allow sidebar to scroll independently if its content grows */
+  padding: 1.5rem;
+  overflow: auto;
   z-index: 1000;
+  box-shadow: 4px 0 24px rgba(2, 6, 23, 0.35);
 }
 
 .admin-sidebar .admin-nav-link {
@@ -37,43 +39,80 @@
 }
 
 .admin-main-content {
-  margin-left: 260px; /* keep content to the right of fixed sidebar */
-  height: 100vh; /* make it a full-height scroll container */
-  overflow: auto; /* only this area should scroll */
-  padding: 0; /* inner padding handled by .admin-content-inner */
-  background-color: #f8f9fa;
+  margin-left: 280px;
+  height: 100vh;
+  overflow: auto;
+  padding: 0;
+  background: linear-gradient(135deg, var(--surface-200) 0%, #f8fbff 100%);
 }
 
 .admin-content-inner {
-  padding: 2rem;
+  padding: 2.5rem;
   min-height: 100%;
 }
 
 .admin-header {
-  background-color: white;
-  border-bottom: 1px solid #dee2e6;
-  padding: 1rem 2rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: none;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
   margin-bottom: 2rem;
+  box-shadow: 0 8px 32px var(--shadow-accent);
+  border: 1px solid rgba(62,160,255,0.08);
 }
 
 .admin-nav-link {
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
-  padding: 0.75rem 1.5rem;
-  display: block;
-  border-radius: 0.375rem;
-  margin: 0.25rem 0;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  border-radius: 12px;
+  margin: 0.5rem 0;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-nav-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
 }
 
 .admin-nav-link:hover {
-  background-color: #495057;
+  background: rgba(255, 255, 255, 0.06);
   color: #ffffff;
   text-decoration: none;
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.admin-nav-link:hover::before {
+  transform: translateX(0);
 }
 
 .admin-nav-link.active {
-  background-color: #007bff;
+  background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.admin-nav-link i {
+  margin-right: 0.75rem;
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
 }
 
 /* Make sure the overall layout doesn't add extra vertical scrolling */
@@ -100,4 +139,403 @@
 /* When admin layout is active, remove any global top padding (e.g. from navbar.css) */
 body.admin-no-top-padding {
   padding-top: 0 !important;
+}
+
+/* Dashboard specific modern components */
+.stat-card {
+  background: linear-gradient(180deg, var(--surface-100), #f8fbff);
+  border-radius: 14px;
+  padding: 1.25rem 1.25rem 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 1px solid rgba(18, 18, 18, 0.04);
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.stat-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(2, 6, 23, 0.12);
+  border-color: rgba(62,160,255,0.10);
+}
+
+/* Variant: low-stock card — make the entire card use danger/red accents */
+.low-stock-card {
+  border-color: rgba(220,53,69,0.12) !important;
+  box-shadow: 0 10px 30px rgba(220,53,69,0.06);
+  background: linear-gradient(180deg, #fff5f6, #fff8f9);
+}
+.low-stock-card .stat-number,
+.low-stock-card .stat-label,
+.low-stock-card .low-stock-icon {
+  color: #dc3545 !important;
+}
+.low-stock-card .modern-btn {
+  border: 2px solid #dc3545 !important;
+  color: #fff !important;
+  background: linear-gradient(180deg,#b91c1c,#c62828) !important;
+  box-shadow: 0 8px 24px rgba(220,53,69,0.12) !important;
+}
+.low-stock-card .modern-btn:hover {
+  box-shadow: 0 12px 32px rgba(220,53,69,0.16) !important;
+}
+.stat-number {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--muted-700);
+}
+.stat-label {
+  color: var(--muted-400);
+  font-size: 0.9rem;
+}
+
+/* Low stock emphasis */
+.stat-label.low-stock-label {
+  color: #dc3545; /* bootstrap danger red */
+  font-weight: 600;
+}
+
+/* Low stock section heading */
+.low-stock-heading {
+  color: #dc3545 !important;
+  font-weight: 700;
+}
+.low-stock-heading i {
+  color: #dc3545 !important;
+}
+
+/* small helper for the low-stock stat icon */
+.low-stock-icon {
+  color: #dc3545 !important;
+  font-size: 2.5rem;
+}
+
+.modern-btn {
+  background: linear-gradient(180deg, rgba(11, 34, 64, 0.98), rgba(11, 34, 64, 1));
+  /* show a subtle accent border at rest (2px) to match the mock */
+  border: 2px solid rgba(62,160,255,0.14);
+  color: #fff;
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px var(--shadow-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.modern-btn:hover, .modern-btn:focus {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, rgba(11, 34, 64, 0.98), rgba(11, 34, 64, 1));
+  border-color: var(--accent-500) !important;
+  box-shadow: 0 10px 28px rgba(62,160,255,0.12);
+  text-decoration: none;
+}
+.modern-btn[variant='link'] {
+  background: transparent;
+  color: var(--accent-500);
+  box-shadow: none;
+  padding: 0.25rem 0.5rem;
+}
+
+.modern-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 6px rgba(62,160,255,0.12) !important;
+  border-color: var(--accent-500) !important;
+}
+
+.modern-btn, .modern-btn:focus, .modern-btn:hover {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.modern-card {
+  border-radius: 14px;
+  background: linear-gradient(180deg,var(--surface-100),#fbfeff);
+  border: 1px solid rgba(2,6,23,0.04);
+  box-shadow: 0 10px 30px rgba(2,6,23,0.06);
+}
+
+/* Table styling for modern look */
+.modern-card .table thead th {
+  border: none;
+  color: #ffffff;
+  font-weight: 600;
+}
+.modern-card .table tbody td {
+  vertical-align: middle;
+  border-top: 1px solid rgba(15,23,42,0.04);
+}
+.table-responsive {
+  overflow: auto;
+}
+
+/* Badge helpers */
+.badge.bg-success, .badge.bg-warning, .badge.bg-danger, .badge.bg-secondary, .badge.bg-info, .badge.bg-primary {
+  padding: 0.45rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+/* Small helper for quick actions */
+.d-grid .btn {
+  border-radius: 10px;
+}
+
+/* Product table image styles */
+.product-image {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: inline-block;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  background: transparent;
+}
+.product-image:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px rgba(2,6,23,0.12);
+}
+.no-image-placeholder {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15,23,42,0.03);
+}
+
+/* Modern product table/card rows */
+.product-table {
+  border-collapse: separate !important;
+  border-spacing: 0 12px !important;
+}
+.product-table thead {
+  display: table-header-group;
+}
+.product-table thead th {
+  background: transparent;
+  color: #6b7280; /* muted */
+  font-weight: 600;
+  padding: 8px 12px;
+  text-align: left;
+  border: none;
+}
+
+/* Users table specific overrides: make name and gender text darker on light backgrounds */
+.users-table tbody td {
+  color: #0b1220; /* near-black for readability */
+}
+.users-table tbody td .badge {
+  color: #0b1220; /* dark text inside badge */
+  background: rgba(11,18,32,0.06); /* subtle light background */
+  border-radius: 999px;
+  padding: 0.35rem 0.6rem;
+  font-weight: 700;
+}
+.product-table thead th:first-child { padding-left: 24px; }
+.product-table thead th:last-child { text-align: right; padding-right: 24px; }
+
+/* Center action column content (buttons) */
+.product-table tbody td:last-child {
+  text-align: center !important;
+}
+.product-table thead th:last-child {
+  text-align: center; /* center header label for Actions */
+}
+.product-table tbody td:last-child .d-flex {
+  justify-content: center; /* center flex children (Edit button) */
+}
+.product-action-btn {
+  margin-left: 0;
+  margin-right: 0;
+}
+.product-table tbody tr {
+  /* Use transparent background so rows blend with page background instead of white cards */
+  background: transparent;
+  border-radius: 8px;
+  box-shadow: none;
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+.product-table tbody tr:hover {
+  /* Subtle hover: a very light tint and slight lift to indicate interactivity without a stark white card */
+  background: rgba(15,23,42,0.02);
+  transform: translateY(-2px);
+}
+.product-table td {
+  vertical-align: middle !important;
+  border: none !important;
+  padding: 12px 12px !important;
+  /* Subtle bottom divider for readability when rows are transparent */
+  border-bottom: 1px solid rgba(15,23,42,0.03);
+}
+.product-name-link {
+  color: var(--muted-700);
+  font-weight: 600;
+}
+.product-name-link:hover {
+  color: var(--accent-500);
+  text-decoration: none;
+}
+.product-table .badge {
+  border-radius: 999px;
+  padding: 0.4rem 0.6rem;
+  font-weight: 700;
+}
+.product-action-btn {
+  border-radius: 8px;
+}
+
+/* Responsive tweaks for cards and table */
+@media (max-width: 768px) {
+  .stat-card { padding: 0.9rem; }
+  .stat-number { font-size: 1.5rem; }
+  .admin-content-inner { padding: 1rem; }
+  .admin-header { padding: 1rem; }
+}
+
+/* Utility: subtle accent line under header */
+.admin-header::after {
+  content: '';
+  display: block;
+  height: 3px;
+  width: 60px;
+  background: linear-gradient(90deg, var(--accent-500) 0%, var(--accent-300) 100%);
+  margin-top: 12px;
+  border-radius: 8px;
+}
+
+/* Accent gradient utility for table headers and banners */
+.accent-gradient {
+  background: linear-gradient(135deg, var(--accent-500) 0%, var(--accent-300) 100%) !important;
+}
+
+.accent-text {
+  color: var(--accent-500) !important;
+}
+
+/* Product list search styling: constrained width, modern input with icon and compact clear */
+.product-search-wrapper {
+  width: 100%;
+  max-width: 720px; /* don't let the search bar stretch too long */
+}
+
+.product-search-group {
+  display: flex;
+  align-items: center;
+  background: var(--surface-100);
+  border-radius: 10px;
+  padding: 6px; /* small inner padding to separate icon */
+  box-shadow: 0 6px 18px rgba(2,6,23,0.04);
+  border: 1px solid rgba(2,6,23,0.04);
+  overflow: hidden;
+}
+
+.product-search-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-400);
+  padding: 0 8px;
+  font-size: 1rem;
+  background: transparent;
+  border: none;
+}
+
+.product-search-input {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 10px 12px !important;
+  font-size: 0.95rem;
+  color: var(--muted-700) !important;
+  background: transparent !important;
+}
+
+.product-search-clear-btn {
+  border: none !important;
+  background: transparent !important;
+  color: var(--muted-400);
+  padding: 6px 8px;
+  margin-right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+.product-search-clear-btn:hover {
+  background: rgba(15,23,42,0.03) !important;
+  color: var(--muted-700) !important;
+}
+
+@media (max-width: 768px) {
+  .product-search-wrapper { max-width: 100%; }
+}
+
+/* Strong no-border overrides (appear last to take precedence) */
+.modern-btn.no-border,
+.no-border {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: inherit !important;
+  padding-left: 0.65rem !important;
+  padding-right: 0.65rem !important;
+}
+
+/* Ensure focus/hover also don't add borders for no-border variant */
+.modern-btn.no-border:hover,
+.modern-btn.no-border:focus,
+.no-border:hover,
+.no-border:focus {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Specifically override low-stock-card's button rule when .no-border is present */
+.low-stock-card .modern-btn.no-border {
+  border: none !important;
+  box-shadow: none !important;
+  background: linear-gradient(180deg,#b91c1c,#c62828) !important; /* keep red background if desired */
+}
+
+/* Prevent focus-visible border from reappearing on no-border buttons */
+.modern-btn.no-border:focus-visible,
+.no-border:focus-visible {
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Extra-high-specificity overrides to beat bootstrap and other rules */
+button.btn.modern-btn.no-border,
+.btn.modern-btn.no-border,
+.modern-btn.no-border,
+a.modern-btn.no-border {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background-image: none !important;
+  color: white !important;
+  background: linear-gradient(180deg,#b91c1c,#c62828) !important; 
+}
+
+button.btn.modern-btn.no-border:hover,
+.btn.modern-btn.no-border:hover,
+a.modern-btn.no-border:hover {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background: linear-gradient(180deg,#b91c1c,#c62828) !important; 
+}
+
+/* If bootstrap adds inner pseudo-element outlines, hide them */
+button.btn.modern-btn.no-border::after,
+button.btn.modern-btn.no-border::before,
+.btn.modern-btn.no-border::after,
+.btn.modern-btn.no-border::before {
+  box-shadow: none !important;
+  border: none !important;
 }

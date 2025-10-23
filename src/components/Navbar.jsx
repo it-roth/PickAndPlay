@@ -9,10 +9,12 @@ import { getImageUrl } from '../lib/utils';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../assets/styles/navbar.css';
 import { LocaleContext } from '../contexts/LocaleContext';
+import { useAuth } from '../contexts/AuthContext';
+import { STORAGE_KEYS } from '../lib/constants';
 
 
 function Navbar() {
-  const [user, setUser] = useState(null);
+  const { user, logout } = useAuth();
   const [cartCount, setCartCount] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
@@ -25,13 +27,11 @@ function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check if the current page matches the given path
   const isActive = (path) => {
     return location.pathname === path ? "active" : "";
   };
 
   useEffect(() => {
-    // Get cart items count from localStorage
     const updateCartCount = () => {
       const cart = JSON.parse(localStorage.getItem('cart')) || [];
       const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -40,22 +40,7 @@ function Navbar() {
 
     updateCartCount();
 
-    // Listen for cart updates
     window.addEventListener('cartUpdated', updateCartCount);
-
-    // Check if user is logged in (customer only)
-    const token = localStorage.getItem('token');
-    if (token) {
-      authService.getCurrentUser()
-        .then(response => {
-          setUser(response.data);
-        })
-        .catch(() => {
-          localStorage.removeItem('token');
-          localStorage.removeItem('userData');
-          setUser(null);
-        });
-    }
 
     return () => {
       window.removeEventListener('cartUpdated', updateCartCount);
@@ -63,7 +48,6 @@ function Navbar() {
   }, []);
 
   useEffect(() => {
-    // No explicit hover-detection here — we'll call hover handlers directly.
     return () => {
       if (langCloseTimer.current) {
         clearTimeout(langCloseTimer.current);
@@ -72,28 +56,23 @@ function Navbar() {
     }
   }, []);
 
-  // Decide whether to hide the navbar (render null) — do this after hooks so rules of hooks are preserved
   const hideOnAuth = location.pathname === '/login' || location.pathname === '/register';
   if (hideOnAuth) return null;
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userData');
-    setUser(null);
+    logout();
     navigate('/');
   };
+  
   const handleLangToggle = () => {
-    // toggle for touch devices; cancel any pending close timer when opening
     if (!langOpen && langCloseTimer.current) {
       clearTimeout(langCloseTimer.current);
       langCloseTimer.current = null;
     }
-    // when opening, decide anchor side
     if (!langOpen) {
       try {
         const btn = langButtonRef.current?.getBoundingClientRect();
         const spaceRight = window.innerWidth - (btn?.right || 0);
-        // if less than 220px on the right, anchor to the right
         setAnchorRight(spaceRight < 220);
       } catch (e) { setAnchorRight(false); }
     }
@@ -101,19 +80,16 @@ function Navbar() {
     setUserOpen(false);
   };
 
-  // Sync language selection via LocaleContext
   const setLanguage = (value) => {
     localeSetLanguage(value);
     setLangOpen(false);
   };
 
-  // Hover helpers with a small delay so fast pointer moves into menu don't close it
   const openLangMenu = () => {
     if (langCloseTimer.current) {
       clearTimeout(langCloseTimer.current);
       langCloseTimer.current = null;
     }
-    // decide anchor side when opened via hover
     try {
       const btn = langButtonRef.current?.getBoundingClientRect();
       const spaceRight = window.innerWidth - (btn?.right || 0);
@@ -131,11 +107,8 @@ function Navbar() {
     }, delay);
   };
 
-  // user toggle handled inline where needed
-
   return (
     <div className="navbar-wrapper">
-      {/* Black Friday Banner */}
       <div className="black-friday-banner">
         <div className="container-fluid d-flex justify-content-between align-items-center py-1 py-sm-2">
           <div className="banner-text">{t('blackFriday')}</div>
@@ -151,17 +124,13 @@ function Navbar() {
         </div>
       </div>
 
-      {/* Main Navbar */}
       <nav className={`navbar navbar-expand-lg main-navbar navbar-modern py-2`}>
         <div className="container-fluid">
-          {/* Logo */}
           <Link to="/" className="navbar-brand logo-container" onClick={() => setExpanded(false)}>
             <img src={logoImage} alt="Pick & Play" className="brand-logo" />
           </Link>
-          {/* Desktop Navigation */}
           <div className="desktop-nav-container d-none d-lg-block">
             <div className="container-fluid">
-              {/* Main Navigation */}
               <div className="main-menu">
                 <Link to="/" className={`main-nav-link ${isActive("/")}`}>{t('home')}</Link>
                 <Link to="/shop" className={`main-nav-link ${isActive("/shop")}`}>{t('shop')}</Link>
@@ -171,10 +140,7 @@ function Navbar() {
             </div>
           </div>
 
-
-          {/* Icons section */}
           <div className="nav-icons d-flex align-items-center">
-            {/* Cart icon with count */}
             <Link to="/cart" className="nav-icon-link position-relative">
                 <i className="bi bi-cart3"></i>
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
@@ -258,7 +224,6 @@ function Navbar() {
 
 
 
-            {/* User menu - Customer only */}
             {user ? (
               <div className="dropdown d-inline user-dropdown">
                 <button
@@ -271,7 +236,6 @@ function Navbar() {
                     if (avatar) {
                       return <img src={avatar} alt={user?.name || 'User'} className="user-avatar rounded-circle" style={{ width: 36, height: 36, objectFit: 'cover' }} />;
                     }
-                    // Fallback initials
                     const name = user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
                     const initials = (name || 'U').split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase();
                     return (
@@ -283,8 +247,36 @@ function Navbar() {
                 </button>
 
                 <ul className={`dropdown-menu${userOpen ? ' show' : ''} dropdown-menu-end`}>
-                  <li><Link className="dropdown-item" to="/profile" onClick={() => { setExpanded(false); setUserOpen(false); }}>Profile</Link></li>
-                  <li><Link className="dropdown-item" to="/orders" onClick={() => { setExpanded(false); setUserOpen(false); }}>Orders</Link></li>
+                  <li>
+                    <Link
+                      className="dropdown-item"
+                      to="/profile"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setExpanded(false);
+                        setUserOpen(false);
+                        if (import.meta.env.DEV) console.debug('Navbar: navigating to /profile via navigate()');
+                        navigate('/profile');
+                      }}
+                    >
+                      Profile
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      className="dropdown-item"
+                      to="/cart"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setExpanded(false);
+                        setUserOpen(false);
+                        if (import.meta.env.DEV) console.debug('Navbar: navigating to /cart via navigate()');
+                        navigate('/cart');
+                      }}
+                    >
+                      Orders
+                    </Link>
+                  </li>
                   {(user?.role && String(user.role).toLowerCase().includes('admin')) || (Array.isArray(user?.roles) && user.roles.some(r => String(r).toLowerCase().includes('admin'))) ? (
                     <li><Link className="dropdown-item" to="/admin/dashboard" onClick={() => { setExpanded(false); setUserOpen(false); }}>Admin</Link></li>
                   ) : null}
@@ -299,7 +291,6 @@ function Navbar() {
             )}
           </div>
 
-          {/* Mobile menu toggle */}
           <button
             className="navbar-toggler"
             type="button"
@@ -311,9 +302,7 @@ function Navbar() {
             <span className="navbar-toggler-icon"></span>
           </button>
 
-          {/* Mobile menu */}
           <div className={`collapse navbar-collapse${expanded ? ' show' : ''}`} id="main-navbar-nav">
-            {/* Mobile navigation links */}
             <div className="mobile-nav d-block d-lg-none">
               <Link to="/" className={`mobile-nav-link ${isActive("/")}`} onClick={() => setExpanded(false)}>
                 {t('home')}
@@ -331,10 +320,6 @@ function Navbar() {
           </div>
         </div>
       </nav>
-
-
-
-
     </div>
   );
 }

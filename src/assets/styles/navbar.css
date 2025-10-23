@@ -118,6 +118,8 @@ body {
 .auth-link-cta {
   display: inline-flex;
   align-items: center;
+  justify-content: center; /* center label horizontally for full-width buttons */
+  text-align: center; /* fallback for inline content */
   gap: 8px;
   padding: 10px 18px;
   border-radius: 999px;
@@ -142,6 +144,28 @@ body {
 .category-btn i,
 .shop-now-btn-custom i,
 .auth-link-cta i { font-size: 14px; }
+
+/* Strong override for Button elements using the auth CTA class so Bootstrap
+   button defaults don't win. This ensures sidebar/full-width CTAs show orange. */
+.btn.auth-link-cta,
+button.auth-link-cta {
+  background: linear-gradient(180deg, var(--pp-accent) 0%, var(--pp-accent-dark) 100%) !important;
+  color: var(--pp-white) !important;
+  border: none !important;
+  box-shadow: 0 8px 20px rgba(226,88,0,0.18) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 10px 18px !important;
+  border-radius: 999px !important;
+}
+
+/* When used with utility classes like w-100, keep full-width and centered */
+.btn.auth-link-cta.w-100,
+button.auth-link-cta.w-100 {
+  width: 100% !important;
+}
 
 /* make ghost variant for secondary actions */
 .pp-btn--secondary {

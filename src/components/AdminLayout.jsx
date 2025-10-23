@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { Container, Navbar, Nav, Button, Dropdown } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 import logoImage from '../assets/images/Logo.png';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../assets/styles/admin-layout.css';
 
 function AdminLayout({ children }) {
+  const { user: authUser, logout } = useAuth();
   const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isDevMode, setIsDevMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,27 +20,13 @@ function AdminLayout({ children }) {
   };
 
   useEffect(() => {
-    // Check if user is logged in and is admin
+    // Check if user is logged in
     const token = localStorage.getItem('token');
     if (token) {
       authService.getCurrentUser()
         .then(response => {
           const u = response.data;
           setUser(u);
-          // Flexible admin detection: accept 'ADMIN' or 'admin' or roles arrays containing ADMIN
-          const roleVal = u && (u.role || u.roles || u.authorities || u.rolesList);
-          const isAdminDetected = (() => {
-            if (!roleVal) return false;
-            if (typeof roleVal === 'string') {
-              return roleVal.toUpperCase() === 'ADMIN';
-            }
-            if (Array.isArray(roleVal)) {
-              return roleVal.some(r => String(r).toUpperCase() === 'ADMIN');
-            }
-            return false;
-          })();
-
-          setIsAdmin(isAdminDetected);
           // Check if using dev credentials
           setIsDevMode(token === 'dev-admin-token');
         })
@@ -47,7 +34,6 @@ function AdminLayout({ children }) {
           localStorage.removeItem('token');
           localStorage.removeItem('userData');
           setUser(null);
-          setIsAdmin(false);
           setIsDevMode(false);
           navigate('/login');
         });
@@ -65,69 +51,62 @@ function AdminLayout({ children }) {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userData');
+    logout(); // Use AuthContext logout which properly clears everything including cart
     setUser(null);
-    setIsAdmin(false);
     setIsDevMode(false);
     navigate('/');
   };
 
-  if (!user || !isAdmin) {
+  if (!user) {
     // If user not authenticated, let effect handle redirect.
-    if (!user) return null;
-
-    // Authenticated but not admin — show a helpful message instead of a blank page
-    console.debug('AdminLayout: authenticated user without admin role', user);
-    return (
-      <Container className="py-5 text-center">
-        <h3>Access denied</h3>
-        <p>You are signed in but do not have admin privileges.</p>
-        <p>
-          <strong>Role returned:</strong> {String(user?.role || (user?.roles && JSON.stringify(user.roles)) || 'none')}
-        </p>
-        <div className="mt-3">
-          <Button variant="primary" onClick={() => navigate('/')}>Return to store</Button>
-        </div>
-      </Container>
-    );
+    return null;
   }
 
   return (
     <div className="admin-layout d-flex">
       {/* Left Sidebar */}
   <aside className="admin-sidebar p-3 d-flex flex-column text-white">
-        <div className="mb-4 d-flex align-items-center">
-          <img src={logoImage} alt="logo" style={{ width: 40, height: 'auto' }} className="me-2" />
+        <div className="mb-5 d-flex align-items-center">
+          <div className="p-2 rounded-3 me-3" style={{background: 'rgba(255,255,255,0.2)'}}>
+            <img src={logoImage} alt="logo" style={{ width: 36, height: 'auto' }} />
+          </div>
           <div>
-            <div className="fw-bold">PickAndPlay Admin</div>
-            {isDevMode && <small className="text-warning">Dev Mode</small>}
+            <div className="fw-bold fs-5">PickAndPlay</div>
+            <div style={{fontSize: '0.85rem', opacity: 0.8}}>Admin Dashboard</div>
+            {isDevMode && <small className="badge bg-warning text-dark">Dev Mode</small>}
           </div>
         </div>
 
         <nav className="flex-grow-1">
           <Link to="/admin/dashboard" className={`admin-nav-link ${isActive('/admin/dashboard')}`}>
-            <i className="bi bi-speedometer2 me-2"></i> Dashboard
+            <i className="bi bi-grid-1x2-fill"></i> Dashboard
           </Link>
           <Link to="/admin/products" className={`admin-nav-link ${isActive('/admin/products')}`}>
-            <i className="bi bi-box me-2"></i> Products
+            <i className="bi bi-box-seam-fill"></i> Products
           </Link>
-          <Link to="/admin/orders" className={`admin-nav-link ${isActive('/admin/orders')}`}>
-            <i className="bi bi-receipt me-2"></i> Orders
+          <Link to="/admin/products/add" className={`admin-nav-link ${isActive('/admin/products/add')}`}>
+            <i className="bi bi-plus-circle-fill"></i> Add Product
           </Link>
           <Link to="/admin/users" className={`admin-nav-link ${isActive('/admin/users')}`}>
-            <i className="bi bi-people me-2"></i> Users
+            <i className="bi bi-people-fill"></i> Users
+          </Link>
+          <hr style={{borderColor: 'rgba(255,255,255,0.2)', margin: '1.5rem 0'}} />
+          <Link to="/" className="admin-nav-link">
+            <i className="bi bi-shop"></i> View Store
           </Link>
         </nav>
 
-        <div className="mt-auto">
-          <div className="mb-2">
-            <strong>{user.firstName} {user.lastName}</strong>
-          </div>
-          <div className="d-flex gap-2">
-            <Button variant="light" size="sm" as={Link} to="/">View Store</Button>
-            <Button variant="outline-light" size="sm" onClick={handleLogout}>Logout</Button>
-          </div>
+        <div className="mt-auto p-3 rounded-3" style={{background: 'rgba(255,255,255,0.1)'}}>
+          <Button 
+            variant="outline-light" 
+            size="sm" 
+            onClick={handleLogout}
+            className="w-100"
+            style={{borderColor: 'rgba(255,255,255,0.3)'}}
+          >
+            <i className="bi bi-box-arrow-right me-2"></i>
+            Logout
+          </Button>
         </div>
       </aside>
 

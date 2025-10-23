@@ -174,3 +174,17 @@ small, .small { font-size: 0.85rem; }
 .team-card .team-image-wrapper img {
   object-position: 50% var(--team-portrait-object-position-y);
 }
+
+/* Save button - orange with white text and darker hover/focus/active states */
+.btn.btn-save-orange,
+.btn-save-orange {
+  background-color: #ff7a00 !important;
+  color: #ffffff !important;
+}
+.btn.btn-save-orange:hover,
+.btn-save-orange:hover,
+.btn-save-orange:focus {
+  background-color: #e06600 !important; /* slightly darker orange */
+  color: #ffffff !important;
+  text-decoration: none;
+}
