@@ -76,13 +76,15 @@ function Cart() {
   const { items: cartItems, updateQuantity: updateCartQuantity, removeItem: removeCartItem, clearCart, refreshCartFromBackend } = useCart();
   const { user, isAuthenticated } = useAuth();
   
-  // Refresh cart with complete backend data if images are missing
+  // Refresh cart with complete backend data if images or stock data are missing
   useEffect(() => {
     if (cartItems.length > 0) {
-      const needsComplete = cartItems.some(item => !item.images || !item.name);
+      const needsComplete = cartItems.some(item => 
+        !item.images || !item.name || item.stockQuantity === undefined || item.stockQuantity === null
+      );
       if (needsComplete && refreshCartFromBackend) {
         if (import.meta.env.DEV) {
-          console.log('🔄 Cart items missing complete data, refreshing from backend');
+          console.log('🔄 Cart items missing complete data (images, name, or stock), refreshing from backend');
         }
         refreshCartFromBackend();
       }
@@ -286,6 +288,20 @@ function Cart() {
 
   const handleUpdateQuantity = (id, newQuantity) => {
     if (newQuantity < 1) return;
+    
+    // Check if the item has stock information
+    const item = cartItems.find(i => i.id === id);
+    if (item && item.stockQuantity !== undefined && item.stockQuantity !== null) {
+      // Don't allow quantity to exceed available stock
+      if (newQuantity > item.stockQuantity) {
+        // Show error message
+        import('../lib/notify').then(({ showError }) => {
+          showError(`Only ${item.stockQuantity} item${item.stockQuantity !== 1 ? 's' : ''} available in stock`);
+        });
+        return;
+      }
+    }
+    
     updateCartQuantity(id, newQuantity);
   };
 
@@ -345,7 +361,7 @@ function Cart() {
           const existingOrderResponse = await orderService.getOrderById(existingPendingOrderId);
           const existingOrder = existingOrderResponse?.data || existingOrderResponse;
           
-          if (existingOrder && existingOrder.status === 'pending') {
+            if (existingOrder && existingOrder.status === 'pending') {
             // Update the existing order with final checkout details
             orderId = existingOrder.id;
             
@@ -356,9 +372,25 @@ function Cart() {
               unitPrice: String(item.price || 0)
             }));
             
-            await orderService.updateOrderItems(orderId, normalizedItems);
-            
-            if (import.meta.env.DEV) console.debug('Reusing existing pending order:', orderId);
+            try {
+              await orderService.updateOrderItems(orderId, normalizedItems);
+              if (import.meta.env.DEV) console.debug('Reusing existing pending order:', orderId);
+            } catch (err) {
+              // If backend returns a 400 (e.g., insufficient stock), surface it to the user and abort checkout
+              try {
+                if (err && err.response && err.response.status === 400 && err.response.data && err.response.data.message) {
+                  const notifyModule = await import('../lib/notify');
+                  const showError = notifyModule.showError || notifyModule.default?.showError || (() => {});
+                  await showError(err.response.data.message);
+                  isSubmittingRef.current = false;
+                  setIsSubmitting(false);
+                  return;
+                }
+              } catch (nerr) {
+                // ignore notify failures
+              }
+              throw err; // fall back to creating a new order as before
+            }
           } else {
             throw new Error('Existing order not found or not pending');
           }
@@ -382,10 +414,26 @@ function Cart() {
           }))
         };
 
-        const orderResponse = await orderService.placeOrder(orderData);
-        orderId = orderResponse.data.id;
-        
-        if (import.meta.env.DEV) console.debug('Created new order:', orderId);
+        try {
+          const orderResponse = await orderService.placeOrder(orderData);
+          orderId = orderResponse.data.id;
+          if (import.meta.env.DEV) console.debug('Created new order:', orderId);
+        } catch (err) {
+          // Handle 400 from backend (e.g., insufficient stock)
+          if (err && err.response && err.response.status === 400 && err.response.data && err.response.data.message) {
+            try {
+              const notifyModule = await import('../lib/notify');
+              const showError = notifyModule.showError || notifyModule.default?.showError || (() => {});
+              await showError(err.response.data.message);
+            } catch (nerr) {
+              // ignore notify errors
+            }
+            isSubmittingRef.current = false;
+            setIsSubmitting(false);
+            return;
+          }
+          throw err;
+        }
       }
 
       // Clear the pending order ID since we now have a confirmed checkout order
@@ -673,58 +721,84 @@ function Cart() {
                     </Col>
                     
                     <Col xs={6} md={4} lg={3}>
-                      <div 
-                        className="d-inline-flex align-items-center rounded-pill px-2 py-2"
-                        style={{ 
-                          backgroundColor: '#fff',
-                          border: '2px solid #ffe8db',
-                          boxShadow: '0 2px 8px rgba(255, 102, 0, 0.08)'
-                        }}
-                      >
-                        <Button
-                          size="sm"
-                          variant="link"
-                          className="text-decoration-none p-0 d-flex align-items-center justify-content-center rounded-circle"
+                      <div className="d-flex flex-column align-items-center gap-1">
+                        <div 
+                          className="d-inline-flex align-items-center rounded-pill px-2 py-2"
                           style={{ 
-                            color: '#ff6600',
-                            width: '32px',
-                            height: '32px',
-                            transition: 'all 0.2s'
-                          }}
-                          onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
-                          onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#fff5f0')}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        >
-                          <i className="bi bi-dash-lg fw-bold"></i>
-                        </Button>
-                        <span 
-                          className="mx-3 fw-bold" 
-                          style={{ 
-                            color: '#ff6600', 
-                            minWidth: '24px', 
-                            textAlign: 'center',
-                            fontSize: '1rem'
+                            backgroundColor: '#fff',
+                            border: '2px solid #ffe8db',
+                            boxShadow: '0 2px 8px rgba(255, 102, 0, 0.08)'
                           }}
                         >
-                          {item.quantity}
-                        </span>
-                        <Button
-                          size="sm"
-                          variant="link"
-                          className="text-decoration-none p-0 d-flex align-items-center justify-content-center rounded-circle"
-                          style={{ 
-                            color: '#ff6600',
-                            width: '32px',
-                            height: '32px',
-                            transition: 'all 0.2s'
-                          }}
-                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fff5f0'}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        >
-                          <i className="bi bi-plus-lg fw-bold"></i>
-                        </Button>
+                          <Button
+                            size="sm"
+                            variant="link"
+                            className="text-decoration-none p-0 d-flex align-items-center justify-content-center rounded-circle"
+                            style={{ 
+                              color: '#ff6600',
+                              width: '32px',
+                              height: '32px',
+                              transition: 'all 0.2s'
+                            }}
+                            onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                            disabled={item.quantity <= 1}
+                            onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#fff5f0')}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <i className="bi bi-dash-lg fw-bold"></i>
+                          </Button>
+                          <span 
+                            className="mx-3 fw-bold" 
+                            style={{ 
+                              color: '#ff6600', 
+                              minWidth: '24px', 
+                              textAlign: 'center',
+                              fontSize: '1rem'
+                            }}
+                          >
+                            {item.quantity}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="link"
+                            className="text-decoration-none p-0 d-flex align-items-center justify-content-center rounded-circle"
+                            style={{ 
+                              color: '#ff6600',
+                              width: '32px',
+                              height: '32px',
+                              transition: 'all 0.2s'
+                            }}
+                            onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                            disabled={item.stockQuantity !== undefined && item.stockQuantity !== null && item.quantity >= item.stockQuantity}
+                            onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#fff5f0')}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            title={item.stockQuantity !== undefined && item.quantity >= item.stockQuantity ? `Maximum stock: ${item.stockQuantity}` : 'Increase quantity'}
+                          >
+                            <i className="bi bi-plus-lg fw-bold"></i>
+                          </Button>
+                        </div>
+                        {/* Stock indicator */}
+                        {item.stockQuantity !== undefined && item.stockQuantity !== null && (
+                          <small 
+                            className="text-muted" 
+                            style={{ 
+                              fontSize: '0.75rem',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {item.quantity >= item.stockQuantity ? (
+                              <span className="text-warning">
+                                <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                                Max stock reached
+                              </span>
+                            ) : (
+                              <span className="text-success">
+                                <i className="bi bi-check-circle-fill me-1"></i>
+                                {item.stockQuantity - item.quantity} more available
+                              </span>
+                            )}
+                          </small>
+                        )}
                       </div>
                     </Col>
                     
@@ -735,7 +809,7 @@ function Cart() {
                             {new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(convertPrice(item.price * item.quantity))}
                           </div>
                           <small className="text-muted" style={{ fontSize: '0.8rem' }}>
-                            {new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(convertPrice(item.price))} each
+                            {item.quantity > 1 ? `${item.quantity} × ` : ''}{new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(convertPrice(item.price))} each
                           </small>
                         </div>
                         <Button

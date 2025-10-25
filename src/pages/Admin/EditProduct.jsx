@@ -138,9 +138,18 @@ function EditProduct() {
   }
 
   return (
-    <Container className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Edit Product</h1>
+    <Container fluid className="py-4">
+      {/* Modern Header */}
+      <div className="admin-header">
+        <div className="row align-items-center">
+          <div className="col">
+            <h1 className="h2 mb-1 accent-text">
+              <i className="bi bi-pencil-square me-3"></i>
+              Edit Product
+            </h1>
+            <p className="text-muted mb-0">Update product details and manage inventory.</p>
+          </div>
+        </div>
       </div>
 
       {error && (

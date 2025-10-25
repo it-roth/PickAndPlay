@@ -84,8 +84,8 @@ function AdminLayout({ children }) {
           <Link to="/admin/products" className={`admin-nav-link ${isActive('/admin/products')}`}>
             <i className="bi bi-box-seam-fill"></i> Products
           </Link>
-          <Link to="/admin/products/add" className={`admin-nav-link ${isActive('/admin/products/add')}`}>
-            <i className="bi bi-plus-circle-fill"></i> Add Product
+          <Link to="/admin/orders" className={`admin-nav-link ${isActive('/admin/orders')}`}>
+            <i className="bi bi-cart-check-fill"></i> Orders
           </Link>
           <Link to="/admin/users" className={`admin-nav-link ${isActive('/admin/users')}`}>
             <i className="bi bi-people-fill"></i> Users

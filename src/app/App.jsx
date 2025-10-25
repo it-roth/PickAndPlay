@@ -29,6 +29,7 @@ import ProductList from '../pages/Admin/ProductList';
 import AddProduct from '../pages/Admin/AddProduct';
 import EditProduct from '../pages/Admin/EditProduct';
 import Users from '../pages/Admin/Users';
+import Orders from '../pages/Admin/Orders';
 
 // Not Found Page
 import NotFound from '../pages/NotFound';
@@ -77,6 +78,7 @@ function App() {
                 <Route path="/products" element={<ProductList />} />
                 <Route path="/products/add" element={<AddProduct />} />
                 <Route path="/products/edit/:id" element={<EditProduct />} />
+                <Route path="/orders" element={<Orders />} />
                 <Route path="/users" element={<Users />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

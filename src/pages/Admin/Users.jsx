@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Container, Table, Button, Form, InputGroup, Pagination, Badge, Modal } from 'react-bootstrap';
+import { Container, Table, Button, Form, InputGroup, Pagination, Badge, Modal, Row, Col, Dropdown } from 'react-bootstrap';
 import { userService } from '../../lib/api';
 import { getImageUrl, isValidImageFile, formatFileSize } from '../../lib/utils';
 
@@ -232,41 +232,54 @@ function Users() {
 
   return (
     <Container fluid className="py-4">
-      <h1 className="mb-4">User Management</h1>
-      
-      {/* Filters */}
-      <div className="mb-4 row">
+      {/* Modern Header */}
+      <div className="admin-header">
+        <Row className="align-items-center">
+          <Col>
+            <h1 className="h2 mb-1 accent-text">
+              <i className="bi bi-people-fill"> </i>
+
+               User Management
+            </h1>
+            <p className="text-muted mb-0">Manage user accounts, edit profiles and roles, or create new users.</p>
+          </Col>
+          <Col xs="auto">
+            <div className="d-flex gap-2">
+              <Button onClick={handleCreateUser} className="modern-btn" aria-label="Create user">
+                <i className="bi bi-plus-lg me-2"></i>
+                Create New User
+              </Button>
+            </div>
+          </Col>
+        </Row>
+      </div>
+      {/* Filters and actions */}
+      <div className="mb-4 row align-items-center gx-3">
         <div className="col-md-6">
-          <InputGroup>
-            <InputGroup.Text>Search</InputGroup.Text>
+          <InputGroup className="shadow-sm rounded-pill overflow-hidden" style={{ border: '1px solid rgba(15,23,42,0.06)' }}>
+            <InputGroup.Text className="bg-white border-0 px-3">
+              <i className="bi bi-search text-muted" />
+            </InputGroup.Text>
             <Form.Control
-              placeholder="Search by name or email..."
+              placeholder="Search users by name or email..."
               value={searchTerm}
               onChange={handleSearch}
+              className="border-0"
+              style={{ boxShadow: 'none' }}
             />
             <Button 
-              variant="outline-secondary"
+              variant="light"
               onClick={() => setSearchTerm('')}
+              className="border-0 rounded-end"
+              style={{ color: '#6b7280' }}
             >
-              Clear
+              <i className="bi bi-x-lg" />
             </Button>
           </InputGroup>
         </div>
-        
-        <div className="col-md-3">
-          <InputGroup>
-            <InputGroup.Text>Gender</InputGroup.Text>
-            <Form.Select
-              value={roleFilter}
-              onChange={handleRoleFilter}
-            >
-              <option value="">All Genders</option>
-              <option value="M">Male</option>
-              <option value="F">Female</option>
-            </Form.Select>
-          </InputGroup>
-        </div>
       </div>
+
+      
       
       {isLoading ? (
         <div className="text-center py-5">

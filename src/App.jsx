@@ -27,6 +27,7 @@ import ProductList from './pages/Admin/ProductList';
 import AddProduct from './pages/Admin/AddProduct';
 import EditProduct from './pages/Admin/EditProduct';
 import Users from './pages/Admin/Users';
+import Orders from './pages/Admin/Orders';
 
 // Not Found Page
 // NotFound page removed. Use admin NotFound as fallback or simple inline placeholder
@@ -116,7 +117,7 @@ function App() {
                 <EditProduct />
               </ProtectedRoute>
             } />
-            <Route path="/admin/cart" element={
+            <Route path="/admin/orders" element={
               <ProtectedRoute adminOnly={true}>
                 <Orders />
               </ProtectedRoute>

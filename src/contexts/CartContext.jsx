@@ -219,11 +219,13 @@ export function CartProvider({ children }) {
       return;
     }
     
-      try {
+    try {
       if (import.meta.env.DEV && window.__SUPPRESS_CONSOLE === false) {
-        console.log('� Saving cart to localStorage:', state.items);
+        console.log('📦 Saving cart to localStorage:', state.items);
       }
       localStorage.setItem(STORAGE_KEYS.CART_ITEMS, JSON.stringify(state.items));
+      // Dispatch event to notify Navbar and other components
+      window.dispatchEvent(new Event('cartUpdated'));
     } catch (error) {
       if (import.meta.env.DEV && window.__SUPPRESS_CONSOLE === false) console.error('Error saving cart to localStorage:', error);
     }
@@ -326,14 +328,29 @@ export function CartProvider({ children }) {
             // create a new pending order (guarded)
             try {
               creatingPendingRef.current = true;
-              const resp = await orderService.placeOrder(orderData);
-              const createdId = resp?.data?.id || resp?.id;
+              try {
+                const resp = await orderService.placeOrder(orderData);
+                const createdId = resp?.data?.id || resp?.id;
                 if (createdId) {
-                try { localStorage.setItem('pendingOrderId', String(createdId)); } catch (e) {}
-                pending = String(createdId);
-                if (import.meta.env.DEV && window.__SUPPRESS_CONSOLE === false) console.debug('Created pending order:', createdId, 'for items:', itemsForApi);
-              } else {
-                if (import.meta.env.DEV && window.__SUPPRESS_CONSOLE === false) console.warn('placeOrder succeeded but no ID returned:', resp);
+                  try { localStorage.setItem('pendingOrderId', String(createdId)); } catch (e) {}
+                  pending = String(createdId);
+                  if (import.meta.env.DEV && window.__SUPPRESS_CONSOLE === false) console.debug('Created pending order:', createdId, 'for items:', itemsForApi);
+                } else {
+                  if (import.meta.env.DEV && window.__SUPPRESS_CONSOLE === false) console.warn('placeOrder succeeded but no ID returned:', resp);
+                }
+              } catch (err) {
+                // If backend returns 400 (insufficient stock), show user-friendly message
+                if (err && err.response && err.response.status === 400 && err.response.data && err.response.data.message) {
+                  try {
+                    const notifyModule = await import('../lib/notify');
+                    const showError = notifyModule.showError || notifyModule.default?.showError || (() => {});
+                    await showError(err.response.data.message);
+                  } catch (nerr) {}
+                  // abort creating pending order
+                  creatingPendingRef.current = false;
+                  return;
+                }
+                throw err;
               }
             } finally {
               creatingPendingRef.current = false;
@@ -528,12 +545,13 @@ export function CartProvider({ children }) {
               const brand = it.productBrand || it.brand || '';
               const description = it.productDescription || it.description || '';
               const category = it.productCategory || it.category || '';
+              const stockQuantity = it.productStockQuantity !== undefined ? it.productStockQuantity : (it.stockQuantity !== undefined ? it.stockQuantity : undefined);
               
               if (!id || quantity <= 0) continue;
               const key = String(id);
               if (!merged.has(key)) {
                 merged.set(key, { 
-                  id, quantity, price, name, images, brand, description, category 
+                  id, quantity, price, name, images, brand, description, category, stockQuantity 
                 });
               } else {
                 merged.get(key).quantity += quantity;
@@ -576,19 +594,36 @@ export function CartProvider({ children }) {
             try {
               const productResp = await productService.getProductById(item.id);
               const product = productResp?.data;
-              return { id: item.id, price: product?.price || 0 };
+              return { 
+                id: item.id, 
+                price: product?.price || 0,
+                stockQuantity: product?.stockQuantity !== undefined ? product.stockQuantity : undefined,
+                name: product?.name || item.name,
+                images: product?.images || item.images,
+                brand: product?.brand || item.brand
+              };
             } catch (e) {
               return { id: item.id, price: 0 };
             }
           });
           
           const priceResults = await Promise.all(pricePromises);
-          const priceMap = new Map(priceResults.map(r => [r.id, r.price]));
+          const enrichmentMap = new Map(priceResults.map(r => [r.id, r]));
           
-          const updatedItems = state.items.map(item => ({
-            ...item,
-            price: priceMap.get(item.id) || item.price
-          }));
+          const updatedItems = state.items.map(item => {
+            const enrichment = enrichmentMap.get(item.id);
+            if (enrichment) {
+              return {
+                ...item,
+                price: enrichment.price || item.price,
+                stockQuantity: enrichment.stockQuantity !== undefined ? enrichment.stockQuantity : item.stockQuantity,
+                name: enrichment.name || item.name,
+                images: enrichment.images || item.images,
+                brand: enrichment.brand || item.brand
+              };
+            }
+            return item;
+          });
           
           dispatch({ type: 'LOAD_CART', payload: updatedItems });
           localStorage.setItem(STORAGE_KEYS.CART_ITEMS, JSON.stringify(updatedItems));

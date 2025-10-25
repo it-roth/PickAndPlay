@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { userService, authService } from '../lib/api';
 import { getImageUrl } from '../lib/utils';
 import { STORAGE_KEYS } from '../lib/constants';
+import UserOrderHistory from '../components/UserOrderHistory';
 import '../assets/styles/index.css';
 
 export default function Profile() {
@@ -260,6 +261,13 @@ export default function Profile() {
               </Row>
             </Form>
           </Card>
+        </Col>
+      </Row>
+
+      {/* Order History Section */}
+      <Row className="mt-4">
+        <Col>
+          <UserOrderHistory />
         </Col>
       </Row>
     </Container>

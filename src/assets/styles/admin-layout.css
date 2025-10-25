@@ -539,3 +539,172 @@ button.btn.modern-btn.no-border::before,
   box-shadow: none !important;
   border: none !important;
 }
+
+/* Print Styles for Orders Report */
+@media print {
+  /* Hide non-essential elements */
+  .admin-sidebar,
+  .admin-nav-link,
+  button,
+  .btn,
+  .modern-btn,
+  .pagination,
+  .modal,
+  .bi-x-lg,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset layout for print */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .admin-main-content {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+
+  .container-fluid {
+    padding: 20px !important;
+  }
+
+  /* Header styling for print */
+  .admin-header {
+    border-bottom: 2px solid #333;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    background: white !important;
+  }
+
+  .admin-header h1 {
+    color: #333 !important;
+    font-size: 24px !important;
+  }
+
+  .admin-header p {
+    color: #666 !important;
+  }
+
+  /* Financial summary cards for print */
+  .card {
+    page-break-inside: avoid;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    margin-bottom: 10px;
+  }
+
+  .card-body {
+    background: white !important;
+    color: #333 !important;
+    padding: 15px !important;
+  }
+
+  .card .text-white,
+  .card .text-white-50 {
+    color: #333 !important;
+  }
+
+  /* Table styling for print */
+  .table {
+    page-break-inside: auto;
+    border: 1px solid #333;
+  }
+
+  .table thead {
+    background: #f0f0f0 !important;
+  }
+
+  .table th,
+  .table td {
+    border: 1px solid #ddd !important;
+    padding: 8px !important;
+    color: #333 !important;
+    font-size: 11px !important;
+  }
+
+  thead.accent-gradient {
+    background: #333 !important;
+  }
+
+  thead.accent-gradient th {
+    color: white !important;
+    background: #333 !important;
+  }
+
+  /* Badge styling for print */
+  .badge {
+    border: 1px solid #333 !important;
+    color: #333 !important;
+    background: white !important;
+    padding: 3px 6px !important;
+  }
+
+  /* Page breaks */
+  .modern-card {
+    page-break-inside: avoid;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+  }
+
+  /* Hide filter inputs for print */
+  .input-group,
+  .select-pill,
+  .col-md-3.text-end {
+    display: none !important;
+  }
+
+  /* Ensure good print layout */
+  @page {
+    margin: 1cm;
+    size: A4 landscape;
+  }
+
+  /* Print title */
+  .admin-header::before {
+    content: "Orders Report - Generated on " attr(data-print-date);
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 10px;
+  }
+
+  /* Hide screen-only rows when printing */
+  .screen-only {
+    display: none !important;
+  }
+
+  /* Show print-only rows when printing */
+  .print-only {
+    display: table-row !important;
+    visibility: visible !important;
+  }
+
+  /* Ensure table and tbody are visible */
+  table, tbody, tr, td, th {
+    display: table !important;
+    visibility: visible !important;
+  }
+
+  tbody tr.print-only {
+    display: table-row !important;
+    visibility: visible !important;
+  }
+
+  /* Make sure cards don't hide in print */
+  .modern-card {
+    display: block !important;
+    visibility: visible !important;
+    overflow: visible !important;
+  }
+
+  .table-responsive {
+    overflow: visible !important;
+  }
+}
+
+/* Hide print-only rows on screen */
+.print-only {
+  display: none !important;
+}

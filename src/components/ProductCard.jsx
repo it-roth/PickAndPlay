@@ -32,6 +32,16 @@ function ProductCard({ product, showShortDesc = false }) {
   const { addItem } = useContext(CartContext);
 
   const addToCart = async () => {
+    // Check stock before attempting to add
+    if (product.stockQuantity !== undefined && product.stockQuantity !== null && product.stockQuantity <= 0) {
+      try {
+        showError(`${displayName} is out of stock`);
+      } catch (e) {
+        alert(`${displayName} is out of stock`);
+      }
+      return;
+    }
+
     const token = localStorage.getItem('token');
     if (!token) {
       try {
@@ -222,18 +232,30 @@ function ProductCard({ product, showShortDesc = false }) {
             </svg>
             <span className="btn-text">{t('details')}</span>
           </Button>
-          <Button className="auth-link-cta btn-add-cart" onClick={addToCart} disabled={isAdding}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="9" cy="21" r="1" />
-              <circle cx="20" cy="21" r="1" />
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-            </svg>
-            {isAdding ? (
-              <span className="btn-text"><span className="btn-spinner" aria-hidden></span> Adding...</span>
-            ) : (
-              <span className="btn-text">{t('addToCart')}</span>
-            )}
-          </Button>
+          
+          {product.stockQuantity !== undefined && product.stockQuantity !== null && product.stockQuantity <= 0 ? (
+            <Button className="btn-add-cart" disabled style={{ backgroundColor: '#dc3545', borderColor: '#dc3545', cursor: 'not-allowed' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+              <span className="btn-text">Out of Stock</span>
+            </Button>
+          ) : (
+            <Button className="auth-link-cta btn-add-cart" onClick={addToCart} disabled={isAdding}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="9" cy="21" r="1" />
+                <circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+              </svg>
+              {isAdding ? (
+                <span className="btn-text"><span className="btn-spinner" aria-hidden></span> Adding...</span>
+              ) : (
+                <span className="btn-text">{t('addToCart')}</span>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -251,10 +273,23 @@ function ProductCard({ product, showShortDesc = false }) {
           </div>
           <div style={{flex:1}}>
             <h5 className="mb-2">${product.price?.toFixed(2)}</h5>
+            {product.stockQuantity !== undefined && product.stockQuantity !== null && product.stockQuantity <= 0 && (
+              <div className="alert alert-danger mb-2" role="alert">
+                <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                Out of Stock
+              </div>
+            )}
             <p className="text-muted">{tProduct(product, 'shortDescription') || tProduct(product, 'description') || product.shortDescription || product.description}</p>
             <div className="d-flex gap-2 mt-3">
               <Button variant="primary" as={Link} to={`/product/${product.id}`} onClick={() => { closeQuickView(); handleDetailsClick(); }}>{t('details')}</Button>
-              <Button className="auth-link-cta" onClick={addToCart}>{t('addToCart')}</Button>
+              {product.stockQuantity !== undefined && product.stockQuantity !== null && product.stockQuantity <= 0 ? (
+                <Button variant="danger" disabled>
+                  <i className="bi bi-x-circle me-1"></i>
+                  Out of Stock
+                </Button>
+              ) : (
+                <Button className="auth-link-cta" onClick={addToCart}>{t('addToCart')}</Button>
+              )}
             </div>
           </div>
         </Modal.Body>
@@ -278,16 +313,31 @@ function PriceSection({ product }){
   const formatted = new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
   const formattedOld = old ? new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(old) : null;
 
+  const isOutOfStock = product.stockQuantity !== undefined && product.stockQuantity !== null && product.stockQuantity <= 0;
+  const isLowStock = product.stockQuantity !== undefined && product.stockQuantity !== null && product.stockQuantity > 0 && product.stockQuantity < 5;
+
   return (
     <div className="product-price-section">
       <div className="price-wrapper">
         <span className="current-price">{formatted}</span>
         {formattedOld && (<span className="old-price">{formattedOld}</span>)}
       </div>
-      <div className="stock-status in-stock">
-        <span className="status-dot"></span>
-        {t('inStock')}
-      </div>
+      {isOutOfStock ? (
+        <div className="stock-status out-of-stock" style={{ color: '#dc3545' }}>
+          <span className="status-dot" style={{ backgroundColor: '#dc3545' }}></span>
+          Out of Stock
+        </div>
+      ) : isLowStock ? (
+        <div className="stock-status low-stock" style={{ color: '#ffc107' }}>
+          <span className="status-dot" style={{ backgroundColor: '#ffc107' }}></span>
+          Only {product.stockQuantity} left
+        </div>
+      ) : (
+        <div className="stock-status in-stock">
+          <span className="status-dot"></span>
+          {t('inStock')}
+        </div>
+      )}
     </div>
   );
 }

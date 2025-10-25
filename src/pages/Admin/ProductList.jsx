@@ -188,11 +188,23 @@ function ProductList() {
 
   return (
     <Container fluid className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4 ">
-        <h1 className='accent-text'>Product Management</h1>
-        <Button as={Link} to="/admin/products/add" className="modern-btn">
-          Add New Product
-        </Button>
+      {/* Modern Header */}
+      <div className="admin-header">
+        <div className="row align-items-center">
+          <div className="col">
+            <h1 className="h2 mb-1 accent-text">
+              <i className="bi bi-box-seam-fill me-3"></i>
+              Product Management
+            </h1>
+            <p className="text-muted mb-0">Manage product inventory, update prices, and add new products.</p>
+          </div>
+          <div className="col-auto">
+            <Button as={Link} to="/admin/products/add" className="modern-btn">
+              <i className="bi bi-plus-lg me-2"></i>
+              Add New Product
+            </Button>
+          </div>
+        </div>
       </div>
       
       {/* Search and filter (constrained width, modern appearance) */}

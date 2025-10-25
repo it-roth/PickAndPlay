@@ -53,7 +53,7 @@ function Dashboard() {
   }
 
   return (
-    <div>
+    <Container fluid className="py-4">
       {/* Modern Header */}
       <div className="admin-header">
         <Row className="align-items-center">
@@ -252,7 +252,7 @@ function Dashboard() {
         </Col>
       </Row>
       
-    </div>
+    </Container>
   );
 }
 

@@ -1,0 +1,379 @@
+/* Orders Screen Styles */
+.orders-container {
+  background-color: #f8f9fa;
+}
+
+.filters-card {
+  border: none;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.summary-card {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  transition: transform 0.2s ease-in-out;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+}
+
+.orders-table {
+  background: white;
+}
+
+.orders-table thead th {
+  background-color: #f8f9fa !important;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.5px;
+}
+
+.orders-table tbody tr {
+  border-bottom: 1px solid #dee2e6;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.orders-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.order-id {
+  color: #007bff;
+  font-weight: 600;
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+}
+
+/* Modern Single Page Print Styles */
+@media print {
+  /* Optimized single page layout */
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm;
+    orientation: portrait;
+  }
+  
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  body { 
+    font-family: 'Segoe UI', 'Arial', sans-serif !important;
+    font-size: 9pt !important;
+    line-height: 1.2 !important;
+    color: #000 !important;
+    background: white !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+  }
+  
+  /* Specific rules for Microsoft Print to PDF compatibility */
+  body.printing {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: block !important;
+  }
+  
+  body.printing * {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  
+  /* Hide screen-only elements */
+  .no-print,
+  button,
+  .btn,
+  .modal,
+  .modal-backdrop {
+    display: none !important;
+  }
+  
+  /* Simple approach - show all content but style for print */
+  .print-only {
+    display: block !important;
+  }
+  
+  /* Container adjustments */
+  .container-fluid {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Modern Compact Header */
+  .h2 {
+    font-size: 16pt !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+    margin: 0 0 6pt 0 !important;
+    color: #000 !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+  
+  .h2 + p {
+    text-align: center !important;
+    font-size: 9pt !important;
+    color: #666 !important;
+    margin: 0 0 8pt 0 !important;
+  }
+  
+  /* Remove auto-generated header to avoid duplicates */
+
+  /* Hide Report Filters in print */
+  .card:has(.card-header h5:contains("Report Filters")),
+  h5:contains("Report Filters"),
+  .card-header:has(h5:contains("Report Filters")),
+  [data-testid="report-filters"] {
+    display: none !important;
+  }
+  
+  /* Clean page layout */
+  .container-fluid {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Modern Compact Summary Cards */
+  .row.g-3 {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    margin: 8pt 0 10pt 0 !important;
+    gap: 6pt !important;
+    page-break-inside: avoid !important;
+  }
+  
+  .row.g-3 .col-md-3 {
+    flex: 1 !important;
+    max-width: 24% !important;
+    margin: 0 !important;
+  }
+  
+  .card {
+    border: 1pt solid #e0e0e0 !important;
+    border-radius: 2pt !important;
+    background: #fafafa !important;
+    box-shadow: none !important;
+    height: auto !important;
+    margin: 0 !important;
+  }
+  
+  .card-body {
+    padding: 8pt 6pt !important;
+    text-align: center !important;
+  }
+  
+  .card-body h6 {
+    color: #666 !important;
+    margin: 0 0 2pt 0 !important;
+    font-size: 8pt !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5pt !important;
+  }
+  
+  .card-body h2 {
+    color: #000 !important;
+    margin: 0 !important;
+    font-size: 13pt !important;
+    font-weight: 700 !important;
+  }
+  
+  .card-body i,
+  .card-body .d-flex {
+    display: none !important;
+  }
+  
+  /* Modern Compact Table */
+  .modern-card {
+    border: none !important;
+    box-shadow: none !important;
+    margin: 10pt 0 0 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+  
+  .table-responsive {
+    overflow: visible !important;
+    border: none !important;
+  }
+  
+  .table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 8pt !important;
+    border: 1pt solid #ddd !important;
+    background: white !important;
+    margin: 0 !important;
+    table-layout: fixed !important;
+  }
+  
+  .table thead {
+    display: table-header-group !important;
+  }
+  
+  .table thead tr {
+    display: table-row !important;
+  }
+  
+  .table th {
+    display: table-cell !important;
+    background: #e9ecef !important;
+    color: #000 !important;
+    font-weight: 700 !important;
+    padding: 8pt 6pt !important;
+    border: 1pt solid #000 !important;
+    text-align: center !important;
+    font-size: 9pt !important;
+    text-transform: uppercase !important;
+    vertical-align: middle !important;
+    letter-spacing: 0.5pt !important;
+    border-bottom: 2pt solid #000 !important;
+    white-space: nowrap !important;
+  }
+  
+  /* Define column widths for proper layout */
+  .table th:nth-child(1) { width: 12% !important; } /* ORDER # */
+  .table th:nth-child(2) { width: 20% !important; } /* DATE */
+  .table th:nth-child(3) { width: 18% !important; } /* CUSTOMER */
+  .table th:nth-child(4) { width: 15% !important; } /* ITEMS */
+  .table th:nth-child(5) { width: 18% !important; } /* STATUS */
+  .table th:nth-child(6) { width: 17% !important; } /* AMOUNT */
+  
+  .table tbody {
+    display: table-row-group !important;
+  }
+  
+  .table tbody tr {
+    display: table-row !important;
+    page-break-inside: avoid !important;
+    background: white !important;
+  }
+  
+  .table tbody tr:nth-child(even) {
+    background: #f8f9fa !important;
+  }
+  
+  .table td {
+    display: table-cell !important;
+    padding: 6pt 4pt !important;
+    border: 1pt solid #ddd !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    font-size: 9pt !important;
+    color: #000 !important;
+    line-height: 1.3 !important;
+    white-space: nowrap !important;
+  }
+  
+  /* Apply same column widths to data cells */
+  .table td:nth-child(1) { width: 12% !important; } /* ORDER # */
+  .table td:nth-child(2) { width: 20% !important; } /* DATE */
+  .table td:nth-child(3) { width: 18% !important; } /* CUSTOMER */
+  .table td:nth-child(4) { width: 15% !important; } /* ITEMS */
+  .table td:nth-child(5) { width: 18% !important; } /* STATUS */
+  .table td:nth-child(6) { width: 17% !important; } /* AMOUNT */
+  
+  .table td:first-child {
+    font-weight: bold !important;
+    color: #000 !important;
+  }
+  
+  .table td:nth-child(6) {
+    text-align: center !important;
+    font-weight: bold !important;
+  }
+  
+  /* Clean badge styling */
+  .badge {
+    background: white !important;
+    border: 1pt solid #000 !important;
+    color: #000 !important;
+    font-size: 8pt !important;
+    padding: 2pt 4pt !important;
+    border-radius: 0 !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    display: inline-block !important;
+  }
+  
+  .bg-success { background: #d4edda !important; color: #155724 !important; border: 1pt solid #c3e6cb !important; }
+  .bg-warning { background: #fff3cd !important; color: #856404 !important; border: 1pt solid #ffeaa7 !important; }
+  .bg-danger { background: #f8d7da !important; color: #721c24 !important; border: 1pt solid #f5c6cb !important; }
+  .bg-info { background: #d1ecf1 !important; color: #0c5460 !important; border: 1pt solid #bee5eb !important; }
+  .bg-primary { background: #cce5ff !important; color: #004085 !important; border: 1pt solid #b3d7ff !important; }
+  .bg-secondary { background: #e2e3e5 !important; color: #383d41 !important; border: 1pt solid #d6d8db !important; }
+  
+  /* Professional footer */
+  .modern-card::after {
+    content: "This report was generated automatically by the Orders Management System\A © 2025 Orders Management System. All rights reserved.";
+    white-space: pre;
+    display: block;
+    text-align: center;
+    font-size: 8pt;
+    color: #666;
+    margin-top: 16pt;
+    padding: 12pt 0;
+    border-top: 1pt solid #ddd;
+    page-break-inside: avoid !important;
+  }
+  
+  /* Page break controls */
+  .row.align-items-center {
+    page-break-after: avoid !important;
+  }
+  
+  .row.mb-4 {
+    page-break-after: avoid !important;
+  }
+  
+  thead {
+    display: table-header-group !important;
+  }
+  
+  tfoot {
+    display: table-footer-group !important;
+  }
+  
+  /* Remove icons from print */
+  .bi {
+    display: none !important;
+  }
+  
+  /* Ensure text is black for clarity */
+  .text-muted,
+  .text-primary,
+  .fw-semibold,
+  .fw-bold {
+    color: #000 !important;
+  }
+  
+  /* Hide empty state messages */
+  .text-center.py-5 {
+    display: none !important;
+  }
+}
