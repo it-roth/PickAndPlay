@@ -167,12 +167,12 @@ Or try again in a few moments.`);
 
               {/* Instagram */}
               <div
-                className="d-flex align-items-start mx-3 mb-2"
+                className="d-flex align-items-start mx-5 mb-2"
                 style={{ flexDirection: "column", maxWidth: "250px" }}
               >
-                <div className="d-flex align-items-center mb-1">
+                <div className="d-flex align-items-center mb-1 ">
                   <i
-                    className="bi bi-instagram me-2 text-danger"
+                    className="bi bi-instagram me-2 text-primary"
                     style={{ fontSize: "1.5rem" }}
                   ></i>
                   <a href="#">@PickAndPlayGuitars</a>
