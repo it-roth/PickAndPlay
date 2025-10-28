@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Image } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { userService, authService } from '../lib/api';
 import { getImageUrl } from '../lib/utils';
 import { STORAGE_KEYS } from '../lib/constants';
-import UserOrderHistory from '../components/UserOrderHistory';
 import '../assets/styles/index.css';
 
 export default function Profile() {
@@ -114,9 +113,11 @@ export default function Profile() {
       form.append('first_name', firstName);
       form.append('last_name', lastName);
       form.append('email', user.email || '');
+
       // Backend expects 'password' param for update; only include if user set a new password
       if (newPassword && newPassword.length > 0) {
         form.append('password', newPassword);
+        form.append('old_password', oldPassword); // Send old password for validation
       }
       // Gender field expected as a single char by controller
       if (user.gender) form.append('gender', String(user.gender).charAt(0));
@@ -124,6 +125,21 @@ export default function Profile() {
       if (imageFile) form.append('images', imageFile);
 
       const resp = await userService.updateUser(user.id, form);
+
+      // Check if response indicates password error
+      const responseText = typeof resp.data === 'string' ? resp.data : JSON.stringify(resp.data);
+      if (responseText.includes('Old password is incorrect')) {
+        setMessage({ type: 'danger', text: 'Old password is incorrect. Please try again.' });
+        setErrors({ password: 'Old password is incorrect' });
+        setSaving(false);
+        return;
+      }
+      if (responseText.includes('Old password is required')) {
+        setMessage({ type: 'danger', text: 'Old password is required to change password.' });
+        setErrors({ password: 'Old password is required' });
+        setSaving(false);
+        return;
+      }
 
       // After updating, refresh current user from backend to get authoritative fields
       try {
@@ -150,19 +166,28 @@ export default function Profile() {
         try { localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(stored)); } catch (e) { }
       }
 
-      setMessage({ type: 'success', text: 'Profile updated successfully.' });
-      setTimeout(() => setMessage(null), 3000);
+      setMessage({ type: 'success', text: 'Profile updated successfully. Refreshing page...' });
+
+      // Clear password fields
+      setOldPassword('');
+      setNewPassword('');
+      setErrors({});
+
+      // Refresh page after 1.5 seconds to show all updates
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
     } catch (err) {
       console.error('Failed to update user', err);
-      setMessage({ type: 'danger', text: 'Failed to update profile. See console for details.' });
-    } finally {
+      setMessage({ type: 'danger', text: 'Failed to update profile. Please try again.' });
       setSaving(false);
     }
   };
 
   if (!user) {
     return (
-      <Container className="mt-5 pt-5">
+      <Container className="py-3" style={{ paddingTop: '20px' }}>
         <Row className="justify-content-center">
           <Col md={8}>
             <Card className="p-4 text-center">
@@ -177,7 +202,7 @@ export default function Profile() {
   }
 
   return (
-    <Container className="mt-5 pt-4">
+    <Container className="py-3" style={{ paddingTop: '20px' }}>
       <Row className="justify-content-center">
         <Col md={8}>
           <Card className="p-4">
@@ -264,10 +289,78 @@ export default function Profile() {
         </Col>
       </Row>
 
-      {/* Order History Section */}
+      {/* Quick Actions */}
       <Row className="mt-4">
         <Col>
-          <UserOrderHistory />
+          <Card className="shadow-sm">
+            <Card.Header className="bg-white">
+              <h5 className="mb-0">
+                <i className="bi bi-lightning me-2"></i>
+                Quick Actions
+              </h5>
+            </Card.Header>
+            <Card.Body>
+              <Row className="g-3">
+                <Col md={4}>
+                  <Link to="/orders" className="text-decoration-none">
+                    <Card className="h-100 border-0 bg-light" style={{ cursor: 'pointer', transition: 'all 0.3s ease' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-5px)';
+                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.15)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '';
+                      }}>
+                      <Card.Body className="text-center">
+                        <i className="bi bi-clock-history display-4 text-primary mb-2"></i>
+                        <h6 className="fw-bold">Order History</h6>
+                        <small className="text-muted">View all your orders</small>
+                      </Card.Body>
+                    </Card>
+                  </Link>
+                </Col>
+                <Col md={4}>
+                  <Link to="/shop" className="text-decoration-none">
+                    <Card className="h-100 border-0 bg-light" style={{ cursor: 'pointer', transition: 'all 0.3s ease' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-5px)';
+                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.15)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '';
+                      }}>
+                      <Card.Body className="text-center">
+                        <i className="bi bi-bag-heart display-4 text-success mb-2"></i>
+                        <h6 className="fw-bold">Continue Shopping</h6>
+                        <small className="text-muted">Browse products</small>
+                      </Card.Body>
+                    </Card>
+                  </Link>
+                </Col>
+                <Col md={4}>
+                  <Link to="/cart" className="text-decoration-none">
+                    <Card className="h-100 border-0 bg-light" style={{ cursor: 'pointer', transition: 'all 0.3s ease' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-5px)';
+                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.15)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '';
+                      }}>
+                      <Card.Body className="text-center">
+                        <i className="bi bi-cart3 display-4 text-warning mb-2"></i>
+                        <h6 className="fw-bold">Shopping Cart</h6>
+                        <small className="text-muted">Review your cart</small>
+                      </Card.Body>
+                    </Card>
+                  </Link>
+                </Col>
+              </Row>
+            </Card.Body>
+          </Card>
         </Col>
       </Row>
     </Container>

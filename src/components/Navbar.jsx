@@ -20,7 +20,7 @@ function Navbar() {
   const [langOpen, setLangOpen] = useState(false);
   const [anchorRight, setAnchorRight] = useState(false);
   const { lang, setLanguage: localeSetLanguage, t } = useContext(LocaleContext);
-  
+
   const [userOpen, setUserOpen] = useState(false);
   const langCloseTimer = useRef(null);
   const langButtonRef = useRef(null);
@@ -63,7 +63,7 @@ function Navbar() {
     logout();
     navigate('/');
   };
-  
+
   const handleLangToggle = () => {
     if (!langOpen && langCloseTimer.current) {
       clearTimeout(langCloseTimer.current);
@@ -110,16 +110,15 @@ function Navbar() {
   return (
     <div className="navbar-wrapper">
       <div className="black-friday-banner">
-        <div className="container-fluid d-flex justify-content-between align-items-center py-1 py-sm-2">
+        <div className="container-fluid d-flex justify-content-between align-items-center">
           <div className="banner-text">{t('blackFriday')}</div>
           <div className="banner-discount">69% OFF</div>
           <button
             type="button"
-            className="btn btn-dark shop-now-btn shop-now-btn-custom"
+            className="banner-shop-btn"
             onClick={() => { setExpanded(false); navigate('/shop'); }}
           >
-            <span className="d-none d-sm-inline">{t('shopNow')} </span>
-            <span className="d-sm-none">{t('shopNow').toUpperCase()}</span>
+            {t('shopNow')}
           </button>
         </div>
       </div>
@@ -142,7 +141,7 @@ function Navbar() {
 
           <div className="nav-icons d-flex align-items-center">
             <Link to="/cart" className="nav-icon-link position-relative">
-                <i className="bi bi-cart3"></i>
+              <i className="bi bi-cart3"></i>
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </Link>
             <div className="language-selector ms-2 d-flex">
@@ -219,7 +218,7 @@ function Navbar() {
                   </li>
                 </ul>
               </div>
-              
+
             </div>
 
 
@@ -265,16 +264,16 @@ function Navbar() {
                   <li>
                     <Link
                       className="dropdown-item"
-                      to="/cart"
+                      to="/orders"
                       onClick={(e) => {
                         e.preventDefault();
                         setExpanded(false);
                         setUserOpen(false);
-                        if (import.meta.env.DEV) console.debug('Navbar: navigating to /cart via navigate()');
-                        navigate('/cart');
+                        if (import.meta.env.DEV) console.debug('Navbar: navigating to /orders');
+                        navigate('/orders');
                       }}
                     >
-                      Orders
+                      <i className="bi bi-clock-history me-2"></i>Order History
                     </Link>
                   </li>
                   {(user?.role && String(user.role).toLowerCase().includes('admin')) || (Array.isArray(user?.roles) && user.roles.some(r => String(r).toLowerCase().includes('admin'))) ? (

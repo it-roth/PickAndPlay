@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Container, Table, Button, Form, InputGroup, Pagination, Badge, Modal, Row, Col, Dropdown } from 'react-bootstrap';
+import { Container, Table, Button, Form, InputGroup, Pagination, Badge, Modal, Row, Col } from 'react-bootstrap';
 import { userService } from '../../lib/api';
 import { getImageUrl, isValidImageFile, formatFileSize } from '../../lib/utils';
 
@@ -15,15 +15,16 @@ function Users() {
     firstName: '',
     lastName: '',
     password: '',
+    oldPassword: '',
     email: '',
     gender: '',
     role: 'USER',
     images: null
   });
   const [isCreating, setIsCreating] = useState(false);
-  
+
   const usersPerPage = 10;
-  
+
   // Helper to compute a display name from available fields
   const getDisplayName = (u) => {
     if (!u) return '';
@@ -50,13 +51,13 @@ function Users() {
       const genderMatch = roleFilter === '' || (user.gender || '').toString() === roleFilter;
       return searchMatch && genderMatch;
     });
-  
+
   // Paginate users
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
-  
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -69,30 +70,31 @@ function Users() {
         setIsLoading(false);
       }
     };
-    
+
     fetchUsers();
   }, []);
-  
+
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1); // Reset to first page on search
   };
-  
+
   const handleRoleFilter = (e) => {
     setRoleFilter(e.target.value);
     setCurrentPage(1); // Reset to first page on filter change
   };
-  
+
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
-  
+
   const handleEditUser = (user) => {
     setSelectedUser(user);
     setUserFormData({
-      firstName: user.firstName || user.first_name || (user.name ? String(user.name).split(' ').slice(0,1).join('') : ''),
+      firstName: user.firstName || user.first_name || (user.name ? String(user.name).split(' ').slice(0, 1).join('') : ''),
       lastName: user.lastName || user.last_name || (user.name ? String(user.name).split(' ').slice(1).join(' ') : ''),
       password: '', // Don't populate password for security
+      oldPassword: '', // Clear old password field
       email: user.email,
       gender: user.gender,
       role: user.role ?? 'USER',
@@ -108,6 +110,7 @@ function Users() {
       firstName: '',
       lastName: '',
       password: '',
+      oldPassword: '',
       email: '',
       gender: 'M',
       role: 'USER',
@@ -140,7 +143,7 @@ function Users() {
       try {
         const resp = await userService.deleteUser(userId);
         const notify = await import('../../lib/notify');
-        try { await notify.showSuccess(resp?.data?.message || 'User deleted'); } catch (e) {}
+        try { await notify.showSuccess(resp?.data?.message || 'User deleted'); } catch (e) { }
       } catch (err) {
         // restore
         setUsers(prev);
@@ -153,10 +156,10 @@ function Users() {
       alert('Failed to delete user. Please try again.');
     }
   };
-  
+
   const handleFormChange = (e) => {
     const { name, value, files } = e.target;
-    
+
     if (name === 'images' && files && files.length > 0) {
       const file = files[0];
       if (!isValidImageFile(file)) {
@@ -170,13 +173,13 @@ function Users() {
         return;
       }
     }
-    
+
     setUserFormData(prev => ({
       ...prev,
       [name]: files ? files : value
     }));
   };
-  
+
   const handleSaveUser = async () => {
     try {
       if (isCreating) {
@@ -193,32 +196,79 @@ function Users() {
         // backend returns a success string; to keep UI updated, refetch or append from response if available
         // We'll optimistically append using the created fields (server id may not be present)
         setUsers(prev => [...prev, { id: response?.data?.id || Date.now(), firstName: userFormData.firstName, lastName: userFormData.lastName, email: userFormData.email, gender: userFormData.gender, role: userFormData.role, images: response?.data?.images || null }]);
+
+        setShowModal(false);
+        setSelectedUser(null);
+        setIsCreating(false);
+
+        // Show success message and refresh page
+        const notify = await import('../../lib/notify');
+        try {
+          await notify.showSuccess('User created successfully! Refreshing page...');
+          setTimeout(() => window.location.reload(), 1500);
+        } catch (e) {
+          alert('User created successfully!');
+          setTimeout(() => window.location.reload(), 1500);
+        }
       } else {
         // Update existing user
         if (!selectedUser) return;
         const fd = new FormData();
         fd.append('first_name', userFormData.firstName || '');
         fd.append('last_name', userFormData.lastName || '');
-        fd.append('password', userFormData.password || '');
+
+        // Only include password fields if user wants to change password
+        if (userFormData.password && userFormData.password.trim() !== '') {
+          if (!userFormData.oldPassword || userFormData.oldPassword.trim() === '') {
+            alert('Please enter the old password to change the password');
+            return;
+          }
+          fd.append('password', userFormData.password);
+          fd.append('old_password', userFormData.oldPassword);
+        }
+
         fd.append('email', userFormData.email || '');
         if (userFormData.gender) fd.append('gender', String(userFormData.gender).charAt(0));
         if (userFormData.role) fd.append('role', userFormData.role);
         if (userFormData.images && userFormData.images.length > 0) fd.append('images', userFormData.images[0]);
-        await userService.updateUser(selectedUser.id, fd);
+
+        const response = await userService.updateUser(selectedUser.id, fd);
+
+        // Check if response indicates password error
+        const responseText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+        if (responseText.includes('Old password is incorrect')) {
+          alert('Old password is incorrect. Please try again.');
+          return;
+        }
+        if (responseText.includes('Old password is required')) {
+          alert('Old password is required to change password.');
+          return;
+        }
+
         // Update user in state optimistically
         const updatedUsers = users.map(u => u.id === selectedUser.id ? { ...u, firstName: userFormData.firstName, lastName: userFormData.lastName, email: userFormData.email, gender: userFormData.gender, images: u.images } : u);
         setUsers(updatedUsers);
+
+        setShowModal(false);
+        setSelectedUser(null);
+        setIsCreating(false);
+
+        // Show success message and refresh page
+        const notify = await import('../../lib/notify');
+        try {
+          await notify.showSuccess('User updated successfully! Refreshing page...');
+          setTimeout(() => window.location.reload(), 1500);
+        } catch (e) {
+          alert('User updated successfully!');
+          setTimeout(() => window.location.reload(), 1500);
+        }
       }
-      
-      setShowModal(false);
-      setSelectedUser(null);
-      setIsCreating(false);
     } catch (error) {
       console.error('Error saving user:', error);
       alert(`Failed to ${isCreating ? 'create' : 'update'} user. Please try again.`);
     }
   };
-  
+
   const getGenderBadgeVariant = (gender) => {
     switch (gender) {
       case 'F':
@@ -239,7 +289,7 @@ function Users() {
             <h1 className="h2 mb-1 accent-text">
               <i className="bi bi-people-fill"> </i>
 
-               User Management
+              User Management
             </h1>
             <p className="text-muted mb-0">Manage user accounts, edit profiles and roles, or create new users.</p>
           </Col>
@@ -267,7 +317,7 @@ function Users() {
               className="border-0"
               style={{ boxShadow: 'none' }}
             />
-            <Button 
+            <Button
               variant="light"
               onClick={() => setSearchTerm('')}
               className="border-0 rounded-end"
@@ -279,8 +329,8 @@ function Users() {
         </div>
       </div>
 
-      
-      
+
+
       {isLoading ? (
         <div className="text-center py-5">
           <p>Loading users...</p>
@@ -413,10 +463,34 @@ function Users() {
               <Form.Label>Email</Form.Label>
               <Form.Control name="email" value={userFormData.email} onChange={handleFormChange} />
             </Form.Group>
+
+            {!isCreating && (
+              <Form.Group className="mb-3">
+                <Form.Label>Old Password <small className="text-muted">(required to change password)</small></Form.Label>
+                <Form.Control
+                  name="oldPassword"
+                  type="password"
+                  value={userFormData.oldPassword}
+                  onChange={handleFormChange}
+                  placeholder="Enter old password if changing password"
+                />
+              </Form.Group>
+            )}
+
             <Form.Group className="mb-3">
-              <Form.Label>Password</Form.Label>
-              <Form.Control name="password" type="password" value={userFormData.password} onChange={handleFormChange} />
+              <Form.Label>
+                {isCreating ? 'Password' : 'New Password'}
+                {!isCreating && <small className="text-muted"> (leave blank to keep current)</small>}
+              </Form.Label>
+              <Form.Control
+                name="password"
+                type="password"
+                value={userFormData.password}
+                onChange={handleFormChange}
+                placeholder={isCreating ? 'Enter password' : 'Enter new password'}
+              />
             </Form.Group>
+
             <Form.Group className="mb-3">
               <Form.Label>Gender</Form.Label>
               <Form.Select name="gender" value={userFormData.gender} onChange={handleFormChange}>

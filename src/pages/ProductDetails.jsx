@@ -24,7 +24,7 @@ function ProductDetails() {
         setProduct(res.data || {});
       })
       .catch(err => {
-        import('../lib/logger').then(({ default: logger }) => logger.error('Failed to load product', err));
+        console.error('Failed to load product', err);
       })
       .finally(() => mounted && setLoading(false));
     return () => { mounted = false; };
@@ -77,15 +77,15 @@ function ProductDetails() {
   const formattedOld = (product && product.oldPrice) ? new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(convertPrice(product.oldPrice)) : null;
 
   return (
-   <Container className="py-6 shop-page-container" style={{ paddingTop: '100px' }}>
+    <Container className="py-3 shop-page-container" style={{ paddingTop: '20px' }}>
       <Row>
         <Col md={6} className="mb-4">
           {imgSrc ? (
-            <div style={{ maxHeight: 420 , overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ maxHeight: 420, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Image src={imgSrc} alt={product.name} fluid rounded style={{ maxHeight: 420, width: 'auto', display: 'block' }} />
             </div>
           ) : (
-            <div style={{height:260,background:'linear-gradient(135deg,#667eea,#764ba2)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff'}}>
+            <div style={{ height: 260, background: 'linear-gradient(135deg,#667eea,#764ba2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
               <div>
                 <h4>Image coming soon</h4>
               </div>

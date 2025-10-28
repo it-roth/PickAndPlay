@@ -159,10 +159,10 @@ function ProductCard({ product, showShortDesc = false }) {
                 className={`product-image ${imageLoaded ? 'loaded' : ''}`}
                 onLoad={() => {
                   setImageLoaded(true);
-                  import('../lib/logger').then(({ default: logger }) => logger.debug('Image loaded successfully for:', product.name));
+                  if (import.meta.env.DEV) console.log('Image loaded successfully for:', product.name);
                 }}
                 onError={(e) => {
-                  import('../lib/logger').then(({ default: logger }) => logger.warn('Image failed to load for:', product.name, 'URL:', e.target?.src));
+                  console.warn('Image failed to load for:', product.name, 'URL:', e.target?.src);
                   setImageError(true);
                   setImageLoaded(false);
                 }}

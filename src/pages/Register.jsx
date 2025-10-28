@@ -50,7 +50,7 @@ function Register() {
         lastName: formData.lastName,
         gender: formData.gender
       };
-      console.debug('Register payload:', payload);
+      if (import.meta.env.DEV) console.debug('Register payload:', payload);
       const response = await authService.register(payload);
 
       // If registration auto-logs in
@@ -58,7 +58,6 @@ function Register() {
         localStorage.setItem('token', response.data.token);
         navigate('/');
       } else {
-        // If an admin is currently logged in, redirect them to the admin users list
         try {
           const stored = localStorage.getItem('userData');
           if (stored) {
@@ -80,7 +79,7 @@ function Register() {
         });
       }
     } catch (error) {
-      import('../lib/logger').then(({ default: logger }) => logger.error('Registration error:', error));
+      console.error('Registration error:', error);
       setError(
         error.response?.data?.message ||
         'Registration failed. Please check your information and try again.'
@@ -94,7 +93,7 @@ function Register() {
     <Container className="auth-page">
       <Card className="position-relative">
         {/* back icon button top-left */}
-        <button type="button" className="back-icon-btn" onClick={() => navigate('/') } aria-label="Back to Home">
+        <button type="button" className="back-icon-btn" onClick={() => navigate('/')} aria-label="Back to Home">
           <i className="bi bi-arrow-left-circle-fill"></i>
         </button>
         <Card.Header as="h4" className="text-center">Create an Account</Card.Header>

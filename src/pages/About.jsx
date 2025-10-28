@@ -5,31 +5,33 @@ import { motion } from "framer-motion";
 import guitarTeam1 from "../assets/images/team/team-member1.jpg";
 import guitarTeam2 from "../assets/images/team/team-member2.jpg";
 import guitarTeam3 from "../assets/images/team/team-member3.jpg";
+import mentor from "../assets/images/mentor.jpg";
+
 
 function About() {
- const teamMembers = [
-  {
-    id: 1,
-    name: "Leng Saroth",
-    role: "Project Lead",
-    bio: "Roth oversees all aspects of the project, from backend to frontend, ensuring everything runs smoothly with a focus on high-quality results.",
-    image: guitarTeam1,
-  },
-  {
-    id: 2,
-    name: "Pen Khemaraktumpoir",
-    role: "UI/UX Designer",
-    bio: "Tumpoir focuses exclusively on user interface and experience design, ensuring every layout, color, and interaction is intuitive and visually appealing.",
-    image: guitarTeam2,
-  },
-  {
-    id: 3,
-    name: "Oeung Panha",
-    role: "Frontend Developer",
-    bio: "Panha is responsible for the frontend development, turning design concepts into responsive and interactive web interfaces.",
-    image: guitarTeam3,
-  },
-];
+  const teamMembers = [
+    {
+      id: 1,
+      name: "Leng Saroth",
+      role: "Project Lead",
+      bio: "Leads the project, work while keeping the team aligned with the product roadmap. Focuses on system design, quality, and timely delivery to ensure the app meets user needs.",
+      image: guitarTeam1,
+    },
+    {
+      id: 2,
+      name: "Pen Khemaraktumpoir",
+      role: "UI/UX Designer",
+      bio: "Designs intuitive, accessible interfaces and crafts polished user experiences. She creates wireframes, prototypes and visual systems that help the team ship delightful, easy-to-use pages.",
+      image: guitarTeam2,
+    },
+    {
+      id: 3,
+      name: "Oeung Panha",
+      role: "Frontend Developer",
+      bio: "Implements responsive UI and component-driven interfaces using React and modern tooling. He translates design into production-ready code and focuses on performance and accessibility.",
+      image: guitarTeam3,
+    },
+  ];
 
 
   return (
@@ -97,6 +99,46 @@ function About() {
         <Container>
           <Row className="text-center mb-5">
             <Col>
+              <h2 className="section-title text-orange">Mentors</h2>
+            </Col>
+          </Row>
+          {/* mentors - match developer style (larger image/card) */}
+          <Row className="justify-content-center mb-4">
+            <Col xs={12} md={6} lg={4} className="text-center">
+              <motion.div
+                whileHover={{ y: -8, scale: 1.03 }}
+                transition={{ type: "spring", stiffness: 200 }}
+              >
+                <Card className="team-card border-0 shadow-lg mb-4 rounded-4">
+                  <Card.Body className="text-center p-4">
+                    <div className="team-image-wrapper">
+                      <Image
+                        src={mentor}
+                        alt={"PHEARUM Sivmeng — Mentor"}
+                        loading="lazy"
+                        className="rounded-circle mb-3 border border-3 border-orange shadow-sm"
+                        style={{
+                          height: "180px",
+                          width: "180px",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </div>
+
+                    <div className="p-3">
+                      <h5 className="fw-bold text-orange">PHEARUM Sivmeng</h5>
+                      <h6 className="text-orange fw-semibold mb-2">Full Stack Developer</h6>
+                      <p className="text-muted small">PHEARUM is an experienced full-stack developer and mentor who guides architecture decisions, promotes code quality, and supports the team's growth through hands-on reviews and coaching.</p>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </motion.div>
+            </Col>
+          </Row>
+
+
+          <Row className="text-center mb-5">
+            <Col>
               <h2 className="section-title text-orange">Meet Our Team</h2>
               <div className="section-underline mb-3 mx-auto"></div>
               <p className="text-muted">
@@ -104,6 +146,7 @@ function About() {
               </p>
             </Col>
           </Row>
+          {/* developers */}
           <Row>
             {teamMembers.map((member) => (
               <Col md={4} key={member.id}>
@@ -111,7 +154,7 @@ function About() {
                   whileHover={{ y: -10, scale: 1.03 }}
                   transition={{ type: "spring", stiffness: 200 }}
                 >
-                    <Card className="team-card border-0 shadow-lg mb-4 rounded-4">
+                  <Card className="team-card border-0 shadow-lg mb-4 rounded-4">
                     <Card.Body className="text-center p-4">
                       <div className="team-image-wrapper">
                         <Image

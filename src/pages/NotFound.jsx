@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 function NotFound() {
   return (
-    <Container className="mt-5 pt-5 text-center">
+    <Container className="py-3 text-center" style={{ paddingTop: '20px' }}>
       <Row className="justify-content-center">
         <Col md={8} lg={6}>
           <div className="p-5 bg-white rounded shadow-sm">

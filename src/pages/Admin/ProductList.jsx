@@ -13,7 +13,7 @@ function ProductList() {
     const height = style?.height || '50px';
     if (!src || errored) {
       return (
-        <div 
+        <div
           className="no-image-placeholder"
           style={{ width, height }}
         >
@@ -23,7 +23,7 @@ function ProductList() {
     }
 
     return (
-      <img 
+      <img
         src={src}
         alt={alt}
         className="product-image"
@@ -37,16 +37,16 @@ function ProductList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const productsPerPage = 5;
-  
+
   // Filter products based on search term
-  const filteredProducts = products.filter(product => 
+  const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
+
   // Paginate products
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
@@ -60,13 +60,15 @@ function ProductList() {
     setCurrentPage(pageParam);
     setSearchTerm(qParam);
   }, [searchParams]);
-  
+
   useEffect(() => {
     // extracted so we can refresh after deletes
     const fetchProducts = async () => {
       try {
         const response = await productService.getAllProducts();
-        setProducts(response.data);
+        // Sort products by ID in descending order (newest first)
+        const sortedProducts = (response.data || []).sort((a, b) => b.id - a.id);
+        setProducts(sortedProducts);
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching products:', error);
@@ -162,7 +164,7 @@ function ProductList() {
       try { await showError(error?.response?.data?.message || 'Failed to delete product. Please try again.'); } catch (e) { /* ignore */ }
     }
   };
-  
+
   const handleSearch = (e) => {
     const q = e.target.value;
     setSearchTerm(q);
@@ -170,7 +172,7 @@ function ProductList() {
     // update url params (keep page=1)
     setSearchParams({ page: '1', q });
   };
-  
+
   const handlePageChange = (e, pageNumber) => {
     // prevent default link behavior if any
     if (e && e.preventDefault) e.preventDefault();
@@ -206,7 +208,7 @@ function ProductList() {
           </div>
         </div>
       </div>
-      
+
       {/* Search and filter (constrained width, modern appearance) */}
       <div className="mb-3 product-search-wrapper">
         <div className="product-search-group">
@@ -233,7 +235,7 @@ function ProductList() {
           </button>
         </div>
       </div>
-      
+
       {isLoading ? (
         <div className="text-center py-5">
           <p>Loading products...</p>
@@ -253,7 +255,7 @@ function ProductList() {
               </tr>
             </thead>
             <tbody>
-                      {currentProducts.length > 0 ? (
+              {currentProducts.length > 0 ? (
                 currentProducts.map(product => (
                   <tr key={product.id}>
                     <td width="80">
@@ -313,20 +315,20 @@ function ProductList() {
               )}
             </tbody>
           </Table>
-          
+
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="d-flex justify-content-center">
               <Pagination>
-                <Pagination.First 
-                  onClick={(e) => handlePageChange(e, 1)} 
+                <Pagination.First
+                  onClick={(e) => handlePageChange(e, 1)}
                   disabled={currentPage === 1}
                 />
-                <Pagination.Prev 
-                  onClick={(e) => handlePageChange(e, currentPage - 1)} 
+                <Pagination.Prev
+                  onClick={(e) => handlePageChange(e, currentPage - 1)}
                   disabled={currentPage === 1}
                 />
-                
+
                 {Array.from({ length: totalPages }).map((_, index) => {
                   const pageNumber = index + 1;
                   // Show current page and 2 pages before and after
@@ -352,13 +354,13 @@ function ProductList() {
                   }
                   return null;
                 })}
-                
-                <Pagination.Next 
-                  onClick={(e) => handlePageChange(e, currentPage + 1)} 
+
+                <Pagination.Next
+                  onClick={(e) => handlePageChange(e, currentPage + 1)}
                   disabled={currentPage === totalPages}
                 />
-                <Pagination.Last 
-                  onClick={(e) => handlePageChange(e, totalPages)} 
+                <Pagination.Last
+                  onClick={(e) => handlePageChange(e, totalPages)}
                   disabled={currentPage === totalPages}
                 />
               </Pagination>

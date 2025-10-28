@@ -1,14 +1,16 @@
 :root {
-  --primary-color: #ff8c00; /* Orange as main color */
+  --primary-color: #ff8c00;
+  /* Orange as main color */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-  --secondary-color: #2e8b57; /* Green as secondary color */
+  --secondary-color: #2e8b57;
+  /* Green as secondary color */
   --success-color: #28a745;
   --danger-color: #dc3545;
   --warning-color: #ffc107;
   --info-color: #17a2b8;
   --light-color: #f8f9fa;
   --dark-color: #343a40;
-  
+
   /* Custom theme colors */
   --orange-main: #ff8c00;
   --orange-light: #ffac4d;
@@ -52,11 +54,17 @@ a {
 }
 
 a:hover {
-  color: #1a2030; /* dark navy */
+  color: #1a2030;
+  /* dark navy */
   text-decoration: underline;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   /* inherit from body so body.lang-kh applies Khmer font to headings */
   font-family: inherit;
   font-weight: 700;
@@ -83,12 +91,26 @@ body.lang-kh .hero-description {
   text-transform: none !important;
 }
 
-h1 { font-size: 2.1rem; }
-h2 { font-size: 1.6rem; }
-h3 { font-size: 1.25rem; }
-h4 { font-size: 1.05rem; }
+h1 {
+  font-size: 2.1rem;
+}
 
-small, .small { font-size: 0.85rem; }
+h2 {
+  font-size: 1.6rem;
+}
+
+h3 {
+  font-size: 1.25rem;
+}
+
+h4 {
+  font-size: 1.05rem;
+}
+
+small,
+.small {
+  font-size: 0.85rem;
+}
 
 /* Custom classes for the guitar shop */
 .product-image:hover {
@@ -113,8 +135,10 @@ small, .small { font-size: 0.85rem; }
 }
 
 .btn-primary:hover {
-  background-color: #1a2030; /* dark navy */
-  border-color: #1a2030; /* dark navy */
+  background-color: #1a2030;
+  /* dark navy */
+  border-color: #1a2030;
+  /* dark navy */
 }
 
 /* Form controls */
@@ -145,8 +169,10 @@ small, .small { font-size: 0.85rem; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start; /* keep content starting from top but centered horizontally */
-  min-height: 360px; /* ensure consistent card heights; tweak as needed */
+  justify-content: flex-start;
+  /* keep content starting from top but centered horizontally */
+  min-height: 360px;
+  /* ensure consistent card heights; tweak as needed */
 }
 
 /* If you want the image itself centered as a fixed square, use this helper */
@@ -164,13 +190,15 @@ small, .small { font-size: 0.85rem; }
   width: 100%;
   height: 100%;
   object-fit: contain;
-  border-radius: 50%; /* keep circular portraits — remove if you want rectangular */
+  border-radius: 50%;
+  /* keep circular portraits — remove if you want rectangular */
 }
 
 /* Nudge portrait crop so heads aren't cropped off — adjust the second value (Y) as needed */
 :root {
   --team-portrait-object-position-y: 10%;
 }
+
 .team-card .team-image-wrapper img {
   object-position: 50% var(--team-portrait-object-position-y);
 }
@@ -181,10 +209,29 @@ small, .small { font-size: 0.85rem; }
   background-color: #ff7a00 !important;
   color: #ffffff !important;
 }
+
 .btn.btn-save-orange:hover,
 .btn-save-orange:hover,
 .btn-save-orange:focus {
-  background-color: #e06600 !important; /* slightly darker orange */
+  background-color: #e06600 !important;
+  /* slightly darker orange */
   color: #ffffff !important;
   text-decoration: none;
+}
+
+/* Make danger buttons slightly lighter on hover and keep white text for better visual feedback */
+.btn-danger {
+  background-color: var(--danger-color);
+  border-color: var(--danger-color);
+  color: #ffffff;
+}
+
+.btn-danger:hover,
+.btn-danger:focus {
+  /* slightly lighter red on hover */
+  background-color: #e35b5b !important;
+  border-color: #e35b5b !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(220, 53, 69, 0.12);
+  transform: translateY(-2px);
 }

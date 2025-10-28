@@ -10,12 +10,13 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
 import BakongImg from '../assets/images/bakong.png';
+import LogoImg from '../assets/images/Logo.png';
 
 function Cart() {
   // Image component with fallback
   function ImageWithFallback({ src, alt, ...props }) {
     const [errored, setErrored] = useState(false);
-    
+
     if (import.meta.env.DEV && (errored || !src)) {
       console.log(`🚫 ImageWithFallback - Image not showing for ${alt}:`, {
         src,
@@ -23,7 +24,7 @@ function Cart() {
         reason: !src ? 'No src provided' : 'Image failed to load'
       });
     }
-    
+
     if (!src || errored) {
       return (
         <div
@@ -75,11 +76,11 @@ function Cart() {
 
   const { items: cartItems, updateQuantity: updateCartQuantity, removeItem: removeCartItem, clearCart, refreshCartFromBackend } = useCart();
   const { user, isAuthenticated } = useAuth();
-  
+
   // Refresh cart with complete backend data if images or stock data are missing
   useEffect(() => {
     if (cartItems.length > 0) {
-      const needsComplete = cartItems.some(item => 
+      const needsComplete = cartItems.some(item =>
         !item.images || !item.name || item.stockQuantity === undefined || item.stockQuantity === null
       );
       if (needsComplete && refreshCartFromBackend) {
@@ -102,7 +103,7 @@ function Cart() {
   const [currentOrderId, setCurrentOrderId] = useState(null);
   // Auto-scan / auto-callback state (one-shot 10s auto-callback for dev/demo)
   const [autoRemaining, setAutoRemaining] = useState(0);
-  const AUTO_DURATION = 25; // seconds (one-shot)
+  const AUTO_DURATION = 5; // seconds (one-shot)
   const [autoTriggered, setAutoTriggered] = useState(false);
   const [lastAutoOrderId, setLastAutoOrderId] = useState(null);
   // Prevent duplicate checkout submissions
@@ -114,12 +115,28 @@ function Cart() {
 
   const sseRef = useRef(null);
   const autoTimerRef = useRef(null);
+  const notifiedOrdersRef = useRef(new Set()); // Track which orders have been notified
   const navigate = useNavigate();
 
   // Compute subtotal from cart items (memoized)
   const subtotal = useMemo(() => {
     return cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   }, [cartItems]);
+
+  // Helper function to send Telegram notification only once per order
+  const sendTelegramNotification = (orderId) => {
+    if (!orderId || notifiedOrdersRef.current.has(orderId)) {
+      return; // Already notified or no order ID
+    }
+    notifiedOrdersRef.current.add(orderId);
+    try {
+      orderService.notifyTelegram(orderId).catch((err) => {
+        if (import.meta.env.DEV) console.warn('notifyTelegram failed', err);
+      });
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn('notifyTelegram invocation failed', err);
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -134,22 +151,22 @@ function Cart() {
     if (!currentOrderId) return;
     const orderId = currentOrderId;
 
-      try {
-        // close previous if any
-        if (sseRef.current) {
-          sseRef.current.close();
-          sseRef.current = null;
-        }
+    try {
+      // close previous if any
+      if (sseRef.current) {
+        sseRef.current.close();
+        sseRef.current = null;
+      }
 
-        // Use explicit backend base if VITE_API_BASE not provided to avoid dev-proxy/SSE issues
-        const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
-        const url = `${apiBase}/api/orders/${orderId}/events`;
-        const es = new EventSource(url);
-        sseRef.current = es;
-        if (import.meta.env.DEV) console.debug('Opening SSE to', url);
+      // Use explicit backend base if VITE_API_BASE not provided to avoid dev-proxy/SSE issues
+      const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
+      const url = `${apiBase}/api/orders/${orderId}/events`;
+      const es = new EventSource(url);
+      sseRef.current = es;
+      if (import.meta.env.DEV) console.debug('Opening SSE to', url);
 
-        es.onopen = () => { if (import.meta.env.DEV) console.debug('SSE connection opened for order', orderId); };
-        es.onmessage = (m) => { if (import.meta.env.DEV) console.debug('SSE generic message', m); };
+      es.onopen = () => { if (import.meta.env.DEV) console.debug('SSE connection opened for order', orderId); };
+      es.onmessage = (m) => { if (import.meta.env.DEV) console.debug('SSE generic message', m); };
 
       es.addEventListener('payment', (e) => {
         try {
@@ -160,25 +177,84 @@ function Cart() {
             // stop timers
             if (khqrPollingTimer) clearInterval(khqrPollingTimer);
             if (sseRef.current) {
-              try { sseRef.current.close(); } catch (err) {}
+              try { sseRef.current.close(); } catch (err) { }
               sseRef.current = null;
               if (import.meta.env.DEV) console.debug('Closed SSE connection after payment');
             }
-            try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) {} }
+            try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) { } }
+
+            // Store current order ID for confirmation page and clear state
+            const completedOrderId = currentOrderId;
             setKhqrData(null);
             setCurrentOrderId(null);
-            // Immediately navigate to confirmation and show a success toast/modal (don't wait for user click)
+
+            // Navigate to confirmation page with order ID
             try {
-              navigate('/order-confirmation');
+              // notify backend to send Telegram alert (fire-and-forget, once per order)
+              sendTelegramNotification(completedOrderId);
+
+              if (completedOrderId) {
+                navigate(`/order-confirmation?orderId=${completedOrderId}`);
+              } else {
+                navigate('/order-confirmation');
+              }
             } catch (e) {
               if (import.meta.env.DEV) console.warn('Navigation failed after payment', e);
             }
+            // Ensure custom Swal styles are injected once
+            if (!document.getElementById('swal-custom-styles')) {
+              const style = document.createElement('style');
+              style.id = 'swal-custom-styles';
+              style.innerHTML = `
+                .swal-glass-popup {
+                  background: rgba(255,255,255,0.85) !important;
+                  backdrop-filter: blur(8px) !important;
+                  -webkit-backdrop-filter: blur(8px) !important;
+                  border-radius: 12px !important;
+                  padding: 26px !important;
+                  display: flex !important;
+                  flex-direction: column !important;
+                  justify-content: center !important;
+                  align-items: center !important;
+                  min-height: 420px !important;
+                  box-shadow: 0 10px 30px rgba(0,0,0,0.18) !important;
+                }
+                .swal-title-custom {
+                  font-size: 1.6rem !important;
+                  margin-bottom: 6px !important;
+                }
+                .swal-html-custom {
+                  font-size: 1rem !important;
+                  color: #495057 !important;
+                  text-align: center !important;
+                }
+                @media (max-width: 576px) {
+                  .swal-glass-popup { min-height: 380px !important; padding: 18px !important; }
+                }
+              `;
+              document.head.appendChild(style);
+            }
+
             Swal.fire({
-              title: 'Payment received',
-              text: 'Payment completed successfully — thank you!',
-              icon: 'success',
-              timer: 2000,
-              showConfirmButton: false
+              title: 'Payment Successful',
+              html: 'Payment completed successfully — thank you!',
+              imageUrl: LogoImg,
+              imageWidth: 96,
+              imageHeight: 96,
+              imageAlt: 'Logo',
+              timer: 5000,
+              timerProgressBar: true,
+              showConfirmButton: false,
+              allowOutsideClick: false,
+              backdrop: 'rgba(255, 255, 255, 1)',
+              background: 'transparent',
+              width: '360px',
+              heightAuto: false,
+              customClass: {
+                popup: 'swal-glass-popup',
+                title: 'swal-title-custom',
+                htmlContainer: 'swal-html-custom'
+              }
             });
           }
         } catch (err) {
@@ -189,7 +265,7 @@ function Cart() {
       es.onerror = (err) => {
         // on error close and cleanup
         if (import.meta.env.DEV) console.warn('SSE connection error for order', orderId, err);
-        try { es.close(); } catch (e) {}
+        try { es.close(); } catch (e) { }
         sseRef.current = null;
       };
     } catch (err) {
@@ -198,7 +274,7 @@ function Cart() {
 
     return () => {
       if (sseRef.current) {
-        try { sseRef.current.close(); } catch (e) {}
+        try { sseRef.current.close(); } catch (e) { }
         sseRef.current = null;
       }
     };
@@ -208,7 +284,7 @@ function Cart() {
   useEffect(() => {
     // If KHQR removed, clear any running timer and reset trigger
     if (!hasKhqr) {
-      try { if (autoTimerRef.current) { clearInterval(autoTimerRef.current); autoTimerRef.current = null; } } catch (e) {}
+      try { if (autoTimerRef.current) { clearInterval(autoTimerRef.current); autoTimerRef.current = null; } } catch (e) { }
       setAutoRemaining(0);
       setAutoTriggered(false);
       return;
@@ -242,9 +318,9 @@ function Cart() {
     const tick = () => {
       remaining -= 1;
       setAutoRemaining(remaining);
-  if (remaining <= 0) {
-  try { if (autoTimerRef.current) { clearInterval(autoTimerRef.current); autoTimerRef.current = null; } } catch (e) {}
-  setAutoRemaining(0);
+      if (remaining <= 0) {
+        try { if (autoTimerRef.current) { clearInterval(autoTimerRef.current); autoTimerRef.current = null; } } catch (e) { }
+        setAutoRemaining(0);
 
         (async () => {
           const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
@@ -260,15 +336,80 @@ function Cart() {
             const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             // ignore response body; SSE or polling will confirm
           } catch (err) {
-            console.warn('Auto callback failed', err);
+            if (import.meta.env.DEV) console.warn('Auto callback failed', err);
           } finally {
-            try { if (khqrPollingTimer) clearInterval(khqrPollingTimer); } catch (e) {}
-            try { if (sseRef.current) { sseRef.current.close(); sseRef.current = null; } } catch (e) {}
-            try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) {} }
+            try { if (khqrPollingTimer) clearInterval(khqrPollingTimer); } catch (e) { }
+            try { if (sseRef.current) { sseRef.current.close(); sseRef.current = null; } } catch (e) { }
+            try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) { } }
+
+            const completedOrderId = currentOrderId;
             setKhqrData(null);
             setCurrentOrderId(null);
-            try { navigate('/order-confirmation'); } catch (e) {}
-            Swal.fire({ title: 'Payment Successful ✅', text: 'We received the confirmation from the bank. Thank you — your payment is complete.', icon: 'success', timer: 2200, showConfirmButton: false });
+            try {
+              // notify backend to send Telegram alert (fire-and-forget, once per order)
+              sendTelegramNotification(completedOrderId);
+
+              if (completedOrderId) {
+                navigate(`/order-confirmation?orderId=${completedOrderId}`);
+              } else {
+                navigate('/order-confirmation');
+              }
+            } catch (e) { }
+            // Ensure custom Swal styles are injected once
+            if (!document.getElementById('swal-custom-styles')) {
+              const style = document.createElement('style');
+              style.id = 'swal-custom-styles';
+              style.innerHTML = `
+                .swal-glass-popup {
+                  background: rgba(255,255,255,0.85) !important;
+                  backdrop-filter: blur(8px) !important;
+                  -webkit-backdrop-filter: blur(8px) !important;
+                  border-radius: 12px !important;
+                  padding: 26px !important;
+                  display: flex !important;
+                  flex-direction: column !important;
+                  justify-content: center !important;
+                  align-items: center !important;
+                  min-height: 420px !important;
+                  box-shadow: 0 10px 30px rgba(0,0,0,0.18) !important;
+                }
+                .swal-title-custom {
+                  font-size: 1.6rem !important;
+                  margin-bottom: 6px !important;
+                }
+                .swal-html-custom {
+                  font-size: 1rem !important;
+                  color: #495057 !important;
+                  text-align: center !important;
+                }
+                @media (max-width: 576px) {
+                  .swal-glass-popup { min-height: 380px !important; padding: 18px !important; }
+                }
+              `;
+              document.head.appendChild(style);
+            }
+
+            Swal.fire({
+              title: 'Payment Successful',
+              html: 'We received the confirmation from the bank. Thank you — your payment is complete.',
+              imageUrl: LogoImg,
+              imageWidth: 96,
+              imageHeight: 96,
+              imageAlt: 'Logo',
+              timer: 5000,
+              timerProgressBar: true,
+              showConfirmButton: false,
+              allowOutsideClick: false,
+              backdrop: 'rgba(102,126,234,0.35)',
+              background: 'transparent',
+              width: '360px',
+              heightAuto: false,
+              customClass: {
+                popup: 'swal-glass-popup',
+                title: 'swal-title-custom',
+                htmlContainer: 'swal-html-custom'
+              }
+            });
           }
         })();
       }
@@ -282,13 +423,13 @@ function Cart() {
       // leave running timer until KHQR removed or order changes
     };
   }, [Boolean(khqrData), currentOrderId, autoScanEnabled]);
-  
+
 
   const { currency, convertPrice, tProduct } = useContext(LocaleContext);
 
   const handleUpdateQuantity = (id, newQuantity) => {
     if (newQuantity < 1) return;
-    
+
     // Check if the item has stock information
     const item = cartItems.find(i => i.id === id);
     if (item && item.stockQuantity !== undefined && item.stockQuantity !== null) {
@@ -301,7 +442,7 @@ function Cart() {
         return;
       }
     }
-    
+
     updateCartQuantity(id, newQuantity);
   };
 
@@ -337,7 +478,7 @@ function Cart() {
       setKhqrData(null);
       setCurrentOrderId(null);
       if (khqrPollingTimer) {
-        try { clearInterval(khqrPollingTimer); } catch (e) {}
+        try { clearInterval(khqrPollingTimer); } catch (e) { }
         setKhqrPollingTimer(null);
       }
 
@@ -349,7 +490,7 @@ function Cart() {
           const parsed = JSON.parse(ud);
           customerName = parsed?.name || parsed?.fullName || parsed?.username || customerName;
         }
-      } catch (e) {}
+      } catch (e) { }
 
       // Check if we have an existing pending order to reuse
       const existingPendingOrderId = localStorage.getItem('pendingOrderId');
@@ -360,18 +501,18 @@ function Cart() {
         try {
           const existingOrderResponse = await orderService.getOrderById(existingPendingOrderId);
           const existingOrder = existingOrderResponse?.data || existingOrderResponse;
-          
-            if (existingOrder && existingOrder.status === 'pending') {
+
+          if (existingOrder && existingOrder.status === 'pending') {
             // Update the existing order with final checkout details
             orderId = existingOrder.id;
-            
+
             // Update order items to ensure they match current cart
             const normalizedItems = cartItems.map(item => ({
               productId: Number(item.id),
               quantity: Number(item.quantity),
               unitPrice: String(item.price || 0)
             }));
-            
+
             try {
               await orderService.updateOrderItems(orderId, normalizedItems);
               if (import.meta.env.DEV) console.debug('Reusing existing pending order:', orderId);
@@ -380,7 +521,7 @@ function Cart() {
               try {
                 if (err && err.response && err.response.status === 400 && err.response.data && err.response.data.message) {
                   const notifyModule = await import('../lib/notify');
-                  const showError = notifyModule.showError || notifyModule.default?.showError || (() => {});
+                  const showError = notifyModule.showError || notifyModule.default?.showError || (() => { });
                   await showError(err.response.data.message);
                   isSubmittingRef.current = false;
                   setIsSubmitting(false);
@@ -423,7 +564,7 @@ function Cart() {
           if (err && err.response && err.response.status === 400 && err.response.data && err.response.data.message) {
             try {
               const notifyModule = await import('../lib/notify');
-              const showError = notifyModule.showError || notifyModule.default?.showError || (() => {});
+              const showError = notifyModule.showError || notifyModule.default?.showError || (() => { });
               await showError(err.response.data.message);
             } catch (nerr) {
               // ignore notify errors
@@ -449,29 +590,32 @@ function Cart() {
         const payload = khqrResponse?.data || khqrResponse;
         // Ensure the payload always includes the correct orderId
         const khqrDataWithOrderId = { ...payload, orderId: orderId };
-  if (import.meta.env.DEV) console.debug('KHQR response payload:', khqrDataWithOrderId);
-  setKhqrData(khqrDataWithOrderId);
-  // Open SSE subscription for this order so we receive payment events in real-time
-  setCurrentOrderId(orderId);
+        if (import.meta.env.DEV) console.debug('KHQR response payload:', khqrDataWithOrderId);
+        setKhqrData(khqrDataWithOrderId);
+        // Open SSE subscription for this order so we receive payment events in real-time
+        setCurrentOrderId(orderId);
 
-            // Immediately fetch current status once to pick up any payments that may have occurred
-              try {
-                const initialStatus = await orderService.getKhqrPaymentStatus(orderId);
-                if (import.meta.env.DEV) console.debug('Initial KHQR status for', orderId, initialStatus?.data || initialStatus);
-              if (initialStatus && initialStatus.data && initialStatus.data.collected !== undefined) {
-                setKhqrData(prev => ({ ...(prev || {}), collected: initialStatus.data.collected, total: initialStatus.data.total, payments: initialStatus.data.payments || [] }));
-                if (initialStatus.data.status === 'complete' || initialStatus.data.status === 'completed') {
-                  // close subscription and navigate
-                  if (khqrPollingTimer) clearInterval(khqrPollingTimer);
-                  setCurrentOrderId(null);
-                  try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) {} }
-                  navigate('/order-confirmation');
-                  return;
-                }
-              }
-            } catch (err) {
-              if (import.meta.env.DEV) console.warn('Initial status fetch failed', err);
+        // Immediately fetch current status once to pick up any payments that may have occurred
+        try {
+          const initialStatus = await orderService.getKhqrPaymentStatus(orderId);
+          if (import.meta.env.DEV) console.debug('Initial KHQR status for', orderId, initialStatus?.data || initialStatus);
+          if (initialStatus && initialStatus.data && initialStatus.data.collected !== undefined) {
+            setKhqrData(prev => ({ ...(prev || {}), collected: initialStatus.data.collected, total: initialStatus.data.total, payments: initialStatus.data.payments || [] }));
+            if (initialStatus.data.status === 'complete' || initialStatus.data.status === 'completed') {
+              // close subscription and navigate
+              if (khqrPollingTimer) clearInterval(khqrPollingTimer);
+              const completedOrderId = orderId;
+              setCurrentOrderId(null);
+              try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) { } }
+              // notify backend to send Telegram alert (fire-and-forget, once per order)
+              sendTelegramNotification(completedOrderId);
+              navigate(`/order-confirmation?orderId=${completedOrderId}`);
+              return;
             }
+          }
+        } catch (err) {
+          if (import.meta.env.DEV) console.warn('Initial status fetch failed', err);
+        }
 
         // Poll every 20 seconds for payment status. Stop after MAX_POLL_COUNT attempts.
         const MAX_POLL_COUNT = 6; // ~2 minutes (6 * 20s)
@@ -480,7 +624,7 @@ function Cart() {
 
         // clear any existing timer first
         if (khqrPollingTimer) {
-          try { clearInterval(khqrPollingTimer); } catch (e) {}
+          try { clearInterval(khqrPollingTimer); } catch (e) { }
         }
 
         const pollTimer = setInterval(async () => {
@@ -497,16 +641,19 @@ function Cart() {
             if (st === 'complete' || st === 'completed') {
               clearInterval(pollTimer);
               // ensure SSE subscription is closed
+              const completedOrderId = orderId;
               setCurrentOrderId(null);
-              try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) {} }
-              navigate('/order-confirmation');
+              try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) { } }
+              // notify backend to send Telegram alert (fire-and-forget, once per order)
+              sendTelegramNotification(completedOrderId);
+              navigate(`/order-confirmation?orderId=${completedOrderId}`);
             }
 
             // Continue polling up to timeout; show timeout message after MAX_POLL_COUNT polls (~MAX_POLL_COUNT*20s)
             setKhqrPollingCount(prev => {
               const next = prev + 1;
               if (next >= MAX_POLL_COUNT) {
-                try { clearInterval(pollTimer); } catch (e) {}
+                try { clearInterval(pollTimer); } catch (e) { }
                 alert('Payment timeout. Please try again.');
                 return next;
               }
@@ -519,7 +666,7 @@ function Cart() {
         }, 20000);
         setKhqrPollingTimer(pollTimer);
       } else {
-        try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) {} }
+        try { clearCart && clearCart(); } catch (e) { try { localStorage.removeItem('cart'); } catch (ee) { } }
         navigate('/order-confirmation');
       }
     } catch (error) {
@@ -537,11 +684,11 @@ function Cart() {
   // Check if user is authenticated - cart should only be accessible to logged-in users
   if (!isAuthenticated) {
     return (
-      <Container className="py-mt-5 pt-6" style={{ paddingTop: '100px', minHeight: '60vh' }}>
+      <Container className="py-3" style={{ paddingTop: '20px', minHeight: '60vh' }}>
         <Row className="justify-content-center">
           <Col md={6} className="text-center">
             <div className="mb-4">
-              <div 
+              <div
                 className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
                 style={{
                   width: '120px',
@@ -556,12 +703,12 @@ function Cart() {
             <p className="text-muted mb-4" style={{ fontSize: '1.1rem' }}>
               Please sign in to your account to access your shopping cart
             </p>
-            <Button 
-              as={Link} 
-              to="/login" 
-              size="lg" 
+            <Button
+              as={Link}
+              to="/login"
+              size="lg"
               className="border-0 fw-semibold px-5 py-3 rounded-pill me-3"
-              style={{ 
+              style={{
                 background: 'linear-gradient(135deg, #ff6600 0%, #ff8533 100%)',
                 boxShadow: '0 8px 24px rgba(255, 102, 0, 0.25)',
                 transition: 'all 0.3s ease',
@@ -579,11 +726,11 @@ function Cart() {
               <i className="bi bi-box-arrow-in-right me-2"></i>
               Sign In
             </Button>
-            <Button 
-              as={Link} 
-              to="/shop" 
+            <Button
+              as={Link}
+              to="/shop"
               variant="outline-secondary"
-              size="lg" 
+              size="lg"
               className="fw-semibold px-5 py-3 rounded-pill"
               style={{ fontSize: '1.1rem' }}
             >
@@ -598,11 +745,11 @@ function Cart() {
 
   if (cartItems.length === 0) {
     return (
-      <Container className="py-mt-5 pt-6" style={{ paddingTop: '100px', minHeight: '60vh' }}>
+      <Container className="py-3" style={{ paddingTop: '20px', minHeight: '60vh' }}>
         <Row className="justify-content-center">
           <Col md={6} className="text-center">
             <div className="mb-4">
-              <div 
+              <div
                 className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
                 style={{
                   width: '120px',
@@ -624,11 +771,11 @@ function Cart() {
   }
 
   return (
-    <Container className="py-mt-5 pt-8" style={{ paddingTop: '120px' }}>
+    <Container className="py-3" style={{ paddingTop: '20px' }}>
       {/* Modern Header */}
       <div className="mb-5">
         <div className="d-flex align-items-center mb-2">
-          <div 
+          <div
             className="rounded-3 d-inline-flex align-items-center justify-content-center me-3"
             style={{
               width: '50px',
@@ -640,9 +787,11 @@ function Cart() {
           </div>
           <div>
             <h1 className="fw-bold mb-0" style={{ color: '#2c3e50' }}>Shopping Cart</h1>
-            <p className="text-muted mb-0">
-              {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} ready for checkout
-            </p>
+            <div className="d-flex align-items-center gap-3">
+              <p className="text-muted mb-0">
+                {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} ready for checkout
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -650,18 +799,18 @@ function Cart() {
       <Row className="g-4">
         <Col lg={8}>
           {/* Cart Items - Modern Card Style */}
-          <Card 
+          <Card
             className="border-0 mb-4 rounded-4"
-            style={{ 
+            style={{
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)'
             }}
           >
             <Card.Body className="p-0">
               {cartItems.map((item, index) => (
-                <div 
-                  key={item.id} 
+                <div
+                  key={item.id}
                   className={`p-4 ${index !== cartItems.length - 1 ? 'border-bottom' : ''}`}
-                  style={{ 
+                  style={{
                     transition: 'all 0.3s ease',
                     cursor: 'default',
                     borderColor: '#f0f0f0'
@@ -677,25 +826,25 @@ function Cart() {
                 >
                   <Row className="g-3 align-items-center">
                     <Col xs={4} md={3} lg={2}>
-                      <div 
+                      <div
                         className="position-relative"
-                        style={{ 
+                        style={{
                           height: '100px',
                           borderRadius: '12px',
                           overflow: 'hidden',
                           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
                         }}
                       >
-                        <ImageWithFallback 
+                        <ImageWithFallback
                           src={getImageUrl(item.images)}
-                          alt={item.name} 
+                          alt={item.name}
                         />
                       </div>
                     </Col>
-                    
+
                     <Col xs={8} md={5} lg={4}>
-                      <Link 
-                        to={`/product/${item.id}`} 
+                      <Link
+                        to={`/product/${item.id}`}
                         className="text-decoration-none"
                         style={{ color: '#2c3e50' }}
                       >
@@ -705,9 +854,9 @@ function Cart() {
                       </Link>
                       {item.brand && (
                         <div className="d-flex align-items-center mt-1">
-                          <span 
+                          <span
                             className="badge rounded-pill px-2 py-1"
-                            style={{ 
+                            style={{
                               backgroundColor: '#fff5f0',
                               color: '#ff6600',
                               fontSize: '0.75rem',
@@ -719,12 +868,12 @@ function Cart() {
                         </div>
                       )}
                     </Col>
-                    
+
                     <Col xs={6} md={4} lg={3}>
                       <div className="d-flex flex-column align-items-center gap-1">
-                        <div 
+                        <div
                           className="d-inline-flex align-items-center rounded-pill px-2 py-2"
-                          style={{ 
+                          style={{
                             backgroundColor: '#fff',
                             border: '2px solid #ffe8db',
                             boxShadow: '0 2px 8px rgba(255, 102, 0, 0.08)'
@@ -734,7 +883,7 @@ function Cart() {
                             size="sm"
                             variant="link"
                             className="text-decoration-none p-0 d-flex align-items-center justify-content-center rounded-circle"
-                            style={{ 
+                            style={{
                               color: '#ff6600',
                               width: '32px',
                               height: '32px',
@@ -747,11 +896,11 @@ function Cart() {
                           >
                             <i className="bi bi-dash-lg fw-bold"></i>
                           </Button>
-                          <span 
-                            className="mx-3 fw-bold" 
-                            style={{ 
-                              color: '#ff6600', 
-                              minWidth: '24px', 
+                          <span
+                            className="mx-3 fw-bold"
+                            style={{
+                              color: '#ff6600',
+                              minWidth: '24px',
                               textAlign: 'center',
                               fontSize: '1rem'
                             }}
@@ -762,7 +911,7 @@ function Cart() {
                             size="sm"
                             variant="link"
                             className="text-decoration-none p-0 d-flex align-items-center justify-content-center rounded-circle"
-                            style={{ 
+                            style={{
                               color: '#ff6600',
                               width: '32px',
                               height: '32px',
@@ -779,9 +928,9 @@ function Cart() {
                         </div>
                         {/* Stock indicator */}
                         {item.stockQuantity !== undefined && item.stockQuantity !== null && (
-                          <small 
-                            className="text-muted" 
-                            style={{ 
+                          <small
+                            className="text-muted"
+                            style={{
                               fontSize: '0.75rem',
                               whiteSpace: 'nowrap'
                             }}
@@ -801,7 +950,7 @@ function Cart() {
                         )}
                       </div>
                     </Col>
-                    
+
                     <Col xs={6} md={12} lg={3} className="text-lg-end">
                       <div className="d-flex align-items-center justify-content-between justify-content-lg-end">
                         <div className="me-3">
@@ -817,7 +966,7 @@ function Cart() {
                           className="text-decoration-none p-0 d-flex align-items-center justify-content-center rounded-circle"
                           onClick={() => handleRemoveItem(item.id)}
                           title="Remove item"
-                          style={{ 
+                          style={{
                             color: '#dc3545',
                             width: '36px',
                             height: '36px',
@@ -844,15 +993,15 @@ function Cart() {
 
           {/* Payment Section */}
           {isCheckingOut && (
-            <Card 
+            <Card
               className="border-0 rounded-4"
-              style={{ 
+              style={{
                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)'
               }}
             >
               <Card.Body className="p-4">
                 <div className="d-flex align-items-center mb-4">
-                  <div 
+                  <div
                     className="rounded-circle d-inline-flex align-items-center justify-content-center me-3"
                     style={{
                       width: '65px',
@@ -864,21 +1013,21 @@ function Cart() {
                   </div>
                   <h5 className="fw-bold mb-0" style={{ color: '#2c3e50' }}>Bakong Payment</h5>
                 </div>
-                
+
                 {khqrData ? (
                   <div className="text-center py-4">
                     {/* If the backend returned no qrString, show the raw payload to help debugging */}
                     {!khqrData.qrString && (
                       <Alert variant="warning" className="mb-3">
                         <strong>KHQR response missing QR data.</strong>
-                        <div style={{whiteSpace: 'pre-wrap', textAlign: 'left', marginTop: '8px'}}>
+                        <div style={{ whiteSpace: 'pre-wrap', textAlign: 'left', marginTop: '8px' }}>
                           {JSON.stringify(khqrData, null, 2)}
                         </div>
                       </Alert>
                     )}
-                    <div 
+                    <div
                       className="mb-4 p-3 rounded-3"
-                      style={{ 
+                      style={{
                         background: 'linear-gradient(135deg, #fff5f0 0%, #ffe8db 100%)',
                         border: '2px dashed #ff6600'
                       }}
@@ -886,24 +1035,24 @@ function Cart() {
                       <i className="bi bi-qr-code me-2" style={{ color: '#ff6600' }}></i>
                       <strong style={{ color: '#cc5200' }}>Scan with your banking app to complete payment</strong>
                     </div>
-                    
+
                     <div className="d-flex justify-content-center mb-4">
-                        <div 
-                          className="p-4 bg-white rounded-4"
-                          style={{ 
-                            boxShadow: '0 8px 32px rgba(255, 102, 0, 0.15)',
-                            border: '3px solid #ff6600'
-                          }}
-                        >
-                          {/* Render QR if available; otherwise show the raw string value for copy/testing */}
-                          <QRCodeCanvas value={khqrData.qrString || khqrData.qr || ''} size={220} />
-                        </div>
+                      <div
+                        className="p-4 bg-white rounded-4"
+                        style={{
+                          boxShadow: '0 8px 32px rgba(255, 102, 0, 0.15)',
+                          border: '3px solid #ff6600'
+                        }}
+                      >
+                        {/* Render QR if available; otherwise show the raw string value for copy/testing */}
+                        <QRCodeCanvas value={khqrData.qrString || khqrData.qr || ''} size={220} />
+                      </div>
                     </div>
-                    
+
                     <h3 className="mb-4 fw-bold" style={{ color: '#ff6600' }}>
                       {new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(khqrData.amount)}
                     </h3>
-                    
+
                     <div className="d-flex align-items-center justify-content-center mb-4">
                       <div className="text-center">
                         <div className="mb-2">
@@ -931,8 +1080,8 @@ function Cart() {
                         )}
                       </div>
                     </div>
-                    
-                    <Button 
+
+                    <Button
                       variant="outline-secondary"
                       className="px-4 py-2 rounded-pill"
                       onClick={() => {
@@ -958,12 +1107,12 @@ function Cart() {
                   </div>
                 ) : (
                   <Form onSubmit={handleCheckout}>
-                    <Button 
-                      type="submit" 
-                      size="lg" 
+                    <Button
+                      type="submit"
+                      size="lg"
                       className="w-100 border-0 fw-semibold rounded-pill"
                       disabled={isSubmitting}
-                      style={{ 
+                      style={{
                         background: 'linear-gradient(180deg, rgba(11, 34, 64, 0.98), rgba(11, 34, 64, 1))',
                         color: '#ffffff',
                         transition: 'all 0.3s ease',
@@ -990,16 +1139,16 @@ function Cart() {
 
         {/* Modern Order Summary */}
         <Col lg={4}>
-          <Card 
-            className="border-0 rounded-4 sticky-top" 
-            style={{ 
+          <Card
+            className="border-0 rounded-4 sticky-top"
+            style={{
               top: '100px',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)'
             }}
           >
             <Card.Body className="p-4">
               <div className="d-flex align-items-center mb-4">
-                <div 
+                <div
                   className="rounded-circle d-inline-flex align-items-center justify-content-center me-3"
                   style={{
                     width: '42px',
@@ -1011,7 +1160,7 @@ function Cart() {
                 </div>
                 <h5 className="fw-bold mb-0" style={{ color: '#2c3e50' }}>Order Summary</h5>
               </div>
-              
+
               <div className="mb-3 pb-3" style={{ borderBottom: '2px solid #f8f9fa' }}>
                 <div className="d-flex justify-content-between mb-3">
                   <span className="text-muted">Subtotal</span>
@@ -1020,9 +1169,9 @@ function Cart() {
                 <div className="d-flex justify-content-between align-items-center">
                   <span className="text-muted">Shipping</span>
                   {shipping === 0 ? (
-                    <span 
+                    <span
                       className="badge rounded-pill px-3 py-2 fw-semibold"
-                      style={{ 
+                      style={{
                         background: 'linear-gradient(135deg, #ff6600 0%, #ff8533 100%)',
                         fontSize: '0.85rem'
                       }}
@@ -1035,10 +1184,10 @@ function Cart() {
                   )}
                 </div>
               </div>
-              
-              <div 
+
+              <div
                 className="d-flex justify-content-between align-items-center mb-4 p-3 rounded-3"
-                style={{ 
+                style={{
                   background: 'linear-gradient(135deg, #fff5f0 0%, #ffe8db 100%)'
                 }}
               >
@@ -1065,7 +1214,7 @@ function Cart() {
                     <Button
                       size="lg"
                       className="border-0 fw-semibold rounded-pill"
-                      style={{ 
+                      style={{
                         background: 'linear-gradient(135deg, #ff6600 0%, #ff8533 100%)',
                         boxShadow: '0 6px 20px rgba(255, 102, 0, 0.25)',
                         transition: 'all 0.3s ease',
@@ -1100,9 +1249,9 @@ function Cart() {
               </div>
 
               {shipping === 0 && (
-                <div 
+                <div
                   className="mt-3 p-3 rounded-3 text-center"
-                  style={{ 
+                  style={{
                     background: 'linear-gradient(135deg, #fff5f0 0%, #ffe8db 100%)',
                     border: '2px dashed #ffd6b8'
                   }}

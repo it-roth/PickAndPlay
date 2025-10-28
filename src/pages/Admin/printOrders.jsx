@@ -1,16 +1,14 @@
-"use client"
-
 import { Container, Table, Badge, Row, Col, Card } from "react-bootstrap"
 import { getStatusBadge, formatDate, calculateOrderStats } from "../../lib/orderUtils"
 import "../../assets/styles/orders.css"
 
-function PrintOrders({ 
-  orders = [], 
-  filteredOrders = [], 
-  isPrinting = false, 
-  hasActiveFilters = false 
+function PrintOrders({
+  orders = [],
+  filteredOrders = [],
+  isPrinting = false,
+  hasActiveFilters = false
 }) {
-  
+
   const ordersToDisplay = isPrinting && !hasActiveFilters ? orders : filteredOrders
   const { totalRevenue, totalOrders, averageOrder, totalItems } = calculateOrderStats(ordersToDisplay)
 
@@ -25,9 +23,9 @@ function PrintOrders({
       {/* Main Report Header */}
       <div className="mb-3 text-center">
         <h1 className="h2 mb-1 fw-bold text-dark">Orders Management</h1>
-        <p className="text-muted mb-0 small">Generated on {new Date().toLocaleDateString("en-US")} at {new Date().toLocaleTimeString("en-US", { 
-          hour: '2-digit', 
-          minute: '2-digit' 
+        <p className="text-muted mb-0 small">Generated on {new Date().toLocaleDateString("en-US")} at {new Date().toLocaleTimeString("en-US", {
+          hour: '2-digit',
+          minute: '2-digit'
         })} | Period: All available data</p>
       </div>
 
@@ -85,7 +83,7 @@ function PrintOrders({
               <tbody>
                 {ordersToDisplay.length > 0 ? (
                   ordersToDisplay.map((order) => (
-                    <tr 
+                    <tr
                       key={order.id}
                       style={{ borderBottom: '1px solid #dee2e6' }}
                     >

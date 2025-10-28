@@ -51,27 +51,37 @@ function Login() {
       localStorage.setItem('token', token);
 
       // Try to fetch current user and store only the inner user object
+      let userObj = null;
       try {
         const me = await authService.getCurrentUser();
         // backend returns { status: 'success', data: user } — normalize to user object
-        const userObj = me?.data?.data || me?.data || null;
+        userObj = me?.data?.data || me?.data || null;
         if (userObj) localStorage.setItem('userData', JSON.stringify(userObj));
       } catch (e) {
-        // ignore
+        // ignore fetching user - we'll fallback to any role info in login response
       }
 
-      // If backend returned an admin role, redirect to admin dashboard
-      try {
-        const respRole = response.data?.role;
-        if (respRole && String(respRole).toLowerCase().includes('admin')) {
-          setError('');
-          setSuccess('Admin login successful! Redirecting to dashboard...');
-          setTimeout(() => {
-            navigate('/admin/dashboard');
-          }, 1000);
-          return;
-        }
-      } catch (e) { }
+      // Determine if user is admin (check fetched user first, fall back to login response)
+      const checkIsAdmin = (u) => {
+        if (!u) return false;
+        const roleField = u.role || u.roles || null;
+        if (!roleField) return false;
+        if (typeof roleField === 'string') return String(roleField).toLowerCase().includes('admin');
+        if (Array.isArray(roleField)) return roleField.some(r => String(r).toLowerCase().includes('admin'));
+        return false;
+      };
+
+      const isAdminFromUser = checkIsAdmin(userObj);
+      const isAdminFromResp = checkIsAdmin(response.data || response?.data?.data || null) || checkIsAdmin(respData);
+
+      if (isAdminFromUser || isAdminFromResp) {
+        setError('');
+        setSuccess('Admin login successful! Redirecting to dashboard...');
+        setTimeout(() => {
+          navigate('/admin/dashboard');
+        }, 800);
+        return;
+      }
 
       // Process pending cart action saved in session (if any)
       try {
@@ -101,7 +111,7 @@ function Login() {
       // Show success message with automatic redirect and refresh
       setError(''); // Clear any previous errors
       setSuccess('Login successful! Redirecting...');
-      
+
       // Use window.location.href to force a full page refresh when going to homepage
       setTimeout(() => {
         if (from === '/') {
@@ -111,7 +121,7 @@ function Login() {
         }
       }, 1000);
     } catch (error) {
-      import('../lib/logger').then(({ default: logger }) => logger.error('Authentication error:', error));
+      console.error('Authentication error:', error);
       setError(error.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
@@ -122,7 +132,7 @@ function Login() {
     <Container className="shop-page-container auth-page">
       <Card className="position-relative">
         {/* back icon button top-left */}
-        <button type="button" className="back-icon-btn" onClick={() => navigate('/') } aria-label="Back to Home">
+        <button type="button" className="back-icon-btn" onClick={() => navigate('/')} aria-label="Back to Home">
           <i className="bi bi-arrow-left-circle-fill"></i>
         </button>
         <Card.Header as="h4" className="text-center">Login</Card.Header>

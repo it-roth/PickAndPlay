@@ -54,7 +54,7 @@ function Home() {
       <HeroSection />
 
       {/* Categories Section */}
-      <section className="categories-section mt-5 pt-5">
+      <section className="categories-section mt-5 pt-4">
         <div className="container">
           <div className="section-header text-center mb-5">
             <h2 className="section-title">{t('categories_title')}</h2>
@@ -67,7 +67,7 @@ function Home() {
                 <div className="card category-card h-100 border-0 shadow-sm">
                   <div className="card-body text-center p-4">
                     <h3 className="category-title">{category} </h3>
-                     <p className="category-description text-muted mb-4">
+                    <p className="category-description text-muted mb-4">
                       {t(`category_${category.toLowerCase()}_desc`)}
                     </p>
                     <Link to={`/categories/${category.toLowerCase()}`} className="category-btn">

@@ -32,7 +32,7 @@ function Categories() {
     const filtered = products.filter(p => (p.category || '').toLowerCase() === key);
 
     return (
-      <Container className="mt-5 pt-5"> 
+      <Container className="py-3" style={{ paddingTop: '20px' }}>
         <h2 className="mb-4 text-capitalize">{key} Guitars</h2>
 
         {isLoading ? (

@@ -78,9 +78,9 @@ export const productService = {
   getCategories: () => api.get('/products/categories'),
   // Force-delete removes related order items then deletes the product
   forceDeleteProduct: (id) => api.delete(`/products/${id}/force-delete`),
-  
+
   createProduct: (productData) => {
-   
+
     const formData = new FormData();
     // Required params for backend: brand, category, description, name, price, stock_quantity, images
     formData.append('brand', productData.brand || '');
@@ -97,7 +97,7 @@ export const productService = {
     // Let axios/browser set Content-Type (including boundary)
     return api.post('/products', formData);
   },
-  
+
   updateProduct: (id, productData) => {
     // Always send multipart/form-data to match backend @RequestParam bindings
     const formData = new FormData();
@@ -129,6 +129,8 @@ export const orderService = {
   deleteOrderItem: (orderId, productId) => api.delete(`/orders/${orderId}/items/${productId}`),
   // Delete an order by id
   deleteOrder: (orderId) => api.delete(`/orders/${orderId}`),
+  // Notify backend to send a Telegram alert for an order (backend should implement)
+  notifyTelegram: (orderId, payload = {}) => api.post(`/orders/${orderId}/notify-telegram`, payload),
 };
 
 export const bakongService = {
@@ -152,10 +154,10 @@ export const cartService = {
 export const userService = {
   // GET /api/users - Get all users
   getAllUsers: () => api.get('/users'),
-  
+
   // GET /api/users/{id} - Get user by id
   getUserById: (id) => api.get(`/users/${id}`),
-  
+
   // POST /api/users - Create user (multipart/form-data)
   // Form fields: name, password, email, gender (char), images (file)
   createUser: (userData) => {
@@ -193,8 +195,8 @@ export const userService = {
 
     return api.post('/users', formData, { headers: { 'Content-Type': undefined } });
   },
-  
- 
+
+
   updateUser: (id, userData) => {
     // If caller already passed a FormData (Profile builds one), send it directly but ensure required params exist
     if (typeof FormData !== 'undefined' && userData instanceof FormData) {
@@ -208,11 +210,11 @@ export const userService = {
         if (!userData.has('gender')) userData.append('gender', '');
       } catch (e) {
         // FormData.has may not be supported in some environments; fall back to best-effort appends
-        try { userData.append('first_name', userData.get ? userData.get('first_name') || '' : ''); } catch (e2) {}
-        try { userData.append('last_name', userData.get ? userData.get('last_name') || '' : ''); } catch (e2) {}
-        try { userData.append('password', userData.get ? userData.get('password') || '' : ''); } catch (e2) {}
-        try { userData.append('email', userData.get ? userData.get('email') || '' : ''); } catch (e2) {}
-        try { userData.append('gender', userData.get ? userData.get('gender') || '' : ''); } catch (e2) {}
+        try { userData.append('first_name', userData.get ? userData.get('first_name') || '' : ''); } catch (e2) { }
+        try { userData.append('last_name', userData.get ? userData.get('last_name') || '' : ''); } catch (e2) { }
+        try { userData.append('password', userData.get ? userData.get('password') || '' : ''); } catch (e2) { }
+        try { userData.append('email', userData.get ? userData.get('email') || '' : ''); } catch (e2) { }
+        try { userData.append('gender', userData.get ? userData.get('gender') || '' : ''); } catch (e2) { }
       }
 
       // Let the browser set the Content-Type (with proper boundary) automatically by
@@ -223,7 +225,7 @@ export const userService = {
     // Otherwise build FormData from a plain object
     const formData = new FormData();
     // Support both camelCase and snake_case keys
-    const first = userData.firstName || userData.first_name || (userData.name ? String(userData.name).split(' ').slice(0,1).join('') : '') || '';
+    const first = userData.firstName || userData.first_name || (userData.name ? String(userData.name).split(' ').slice(0, 1).join('') : '') || '';
     const last = userData.lastName || userData.last_name || (userData.name ? String(userData.name).split(' ').slice(1).join(' ') : '') || '';
     formData.append('first_name', first);
     formData.append('last_name', last);

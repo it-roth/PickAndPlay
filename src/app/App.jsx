@@ -7,7 +7,10 @@ import '../assets/styles/App.css';
 import { useAuth } from '../contexts/AuthContext';
 
 // Components
-import { Navbar, Footer, ProtectedRoute, AdminLayout } from '../components';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import ProtectedRoute from '../components/ProtectedRoute';
+import AdminLayout from '../components/AdminLayout';
 
 // Public Pages
 import Home from '../pages/Home';
@@ -20,7 +23,9 @@ import Login from '../pages/Login';
 import Register from '../pages/Register';
 import About from '../pages/About';
 import ScrollToTop from '../components/ScrollToTop';
+import BackToTop from '../components/BackToTop';
 import OrderConfirmation from '../pages/OrderConfirmation';
+import OrderHistory from '../pages/OrderHistory';
 import Profile from '../pages/Profile';
 
 // Admin Pages
@@ -40,6 +45,7 @@ function App() {
   return (
     <Router>
       <ScrollToTop />
+      <BackToTop />
       <Routes>
         {/* Auth pages - render without Navbar/Footer */}
         <Route path="/login" element={<Login />} />
@@ -59,6 +65,8 @@ function App() {
                 <Route path="/product/:id" element={<ProductDetails />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/orders" element={<OrderHistory />} />
+                <Route path="/order-history" element={<OrderHistory />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/order-confirmation" element={<OrderConfirmation />} />

@@ -28,15 +28,15 @@ function Shop() {
   // Map URL category names to actual category values
   const categoryMap = {
     'electric': 'Electric Guitar',
-    'acoustic': 'Acoustic Guitar', 
+    'acoustic': 'Acoustic Guitar',
     'bass': 'Bass Guitar',
     'accessories': 'Accessories'
   };
-  
+
   // Get all available categories and brands from products
   const categories = [...new Set(products.map(p => p.category))];
   const brands = [...new Set(products.map(p => p.brand))];
-  
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -49,7 +49,7 @@ function Shop() {
         setIsLoading(false);
       }
     };
-    
+
     fetchProducts();
   }, []);
 
@@ -68,30 +68,30 @@ function Shop() {
       }));
     }
   }, [categoryName, location.pathname]);
-  
+
   useEffect(() => {
     // Apply filters whenever filters change
     applyFilters();
     setCurrentPage(1);
   }, [filters, products]);
-  
+
   const applyFilters = () => {
     let result = [...products];
-    
+
     // Apply search filter
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
-      result = result.filter(product => 
-        product.name.toLowerCase().includes(searchTerm) || 
+      result = result.filter(product =>
+        product.name.toLowerCase().includes(searchTerm) ||
         product.description.toLowerCase().includes(searchTerm)
       );
     }
-    
+
     // Apply category filter
     if (filters.category) {
       result = result.filter(product => product.category === filters.category);
     }
-    
+
     // Apply price filters
     if (filters.minPrice) {
       result = result.filter(product => product.price >= parseFloat(filters.minPrice));
@@ -99,12 +99,12 @@ function Shop() {
     if (filters.maxPrice) {
       result = result.filter(product => product.price <= parseFloat(filters.maxPrice));
     }
-    
+
     // Apply brand filter
     if (filters.brand) {
       result = result.filter(product => product.brand === filters.brand);
     }
-    
+
     // Apply sorting
     switch (filters.sortBy) {
       case 'newest':
@@ -133,7 +133,7 @@ function Shop() {
       default:
         result.sort((a, b) => a.name.localeCompare(b.name));
     }
-    
+
     setFilteredProducts(result);
   };
 
@@ -148,10 +148,9 @@ function Shop() {
   const goToPage = (page) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
-    // scroll to top of products list
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({
@@ -159,7 +158,7 @@ function Shop() {
       [name]: value
     }));
   };
-  
+
   const resetFilters = () => {
     setFilters({
       search: '',
@@ -179,7 +178,7 @@ function Shop() {
   };
 
   return (
-    <Container className="mt-5 pt-5">
+    <Container className="py-3" style={{ paddingTop: '20px' }}>
       <div className="mb-4">
         <h1>{getCategoryTitle()}</h1>
         {categoryName && (
@@ -195,7 +194,7 @@ function Shop() {
           </nav>
         )}
       </div>
-      
+
       <Row>
         {/* Filters sidebar */}
         <Col md={3}>
@@ -215,7 +214,7 @@ function Shop() {
                     placeholder={t('search_placeholder')}
                   />
                 </Form.Group>
-                
+
                 <Form.Group className="mb-3">
                   <Form.Label>{t('category')}</Form.Label>
                   <Form.Select
@@ -229,7 +228,7 @@ function Shop() {
                     ))}
                   </Form.Select>
                 </Form.Group>
-                
+
                 <Form.Group className="mb-3">
                   <Form.Label>{t('price_range')}</Form.Label>
                   <Row>
@@ -255,7 +254,7 @@ function Shop() {
                     </Col>
                   </Row>
                 </Form.Group>
-                
+
                 <Form.Group className="mb-3">
                   <Form.Label>{t('brand')}</Form.Label>
                   <Form.Select
@@ -269,7 +268,7 @@ function Shop() {
                     ))}
                   </Form.Select>
                 </Form.Group>
-                
+
                 <Form.Group className="mb-3">
                   <Form.Label>{t('sort_by')}</Form.Label>
                   <Form.Select
@@ -282,10 +281,10 @@ function Shop() {
                     <option value="priceDesc">{t('sort_price_desc')}</option>
                   </Form.Select>
                 </Form.Group>
-                
-                <Button 
+
+                <Button
                   className="auth-link-cta w-100 text-center"
-                  type="button" 
+                  type="button"
                   onClick={resetFilters}
                 >
                   {t('reset_filters')}
@@ -294,7 +293,7 @@ function Shop() {
             </Card.Body>
           </Card>
         </Col>
-        
+
         {/* Products grid */}
         <Col md={9}>
           {isLoading ? (
@@ -308,7 +307,7 @@ function Shop() {
                   Showing {startIndex + 1} - {endIndex} of {totalItems} products
                 </p>
               </div>
-              
+
               {pagedProducts.length === 0 ? (
                 <div className="text-center py-5">
                   <p>{t('no_products')}</p>
