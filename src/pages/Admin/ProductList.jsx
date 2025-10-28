@@ -1,108 +1,248 @@
 import { useState, useEffect } from 'react';
-import { Container, Table, Button, Form, InputGroup, Pagination, Badge, Modal } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
-import { productService } from '../../services/api';
+import { Container, Table, Button, Form, InputGroup, Pagination, Badge } from 'react-bootstrap';
+import { Link, useSearchParams } from 'react-router-dom';
+import { productService } from '../../lib/api';
+import { showSuccess, showError } from '../../lib/notify';
+import { getImageUrl } from '../../lib/utils';
 
 function ProductList() {
+  // Small image component to gracefully handle errors
+  function ImageWithFallback({ src, alt, style }) {
+    const [errored, setErrored] = useState(false);
+    const width = style?.width || '50px';
+    const height = style?.height || '50px';
+    if (!src || errored) {
+      return (
+        <div
+          className="no-image-placeholder"
+          style={{ width, height }}
+        >
+          <i className="bi bi-image text-muted" style={{ fontSize: '1.2rem' }}></i>
+        </div>
+      );
+    }
+
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className="product-image"
+        style={{ width, height }}
+        onError={() => setErrored(true)}
+      />
+    );
+  }
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [deleteModalShow, setDeleteModalShow] = useState(false);
-  const [productToDelete, setProductToDelete] = useState(null);
-  
-  const productsPerPage = 10;
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const productsPerPage = 5;
+
   // Filter products based on search term
-  const filteredProducts = products.filter(product => 
+  const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
+
   // Paginate products
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
   const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-  
+
+  // Sync state from URL query params on mount / when params change
   useEffect(() => {
+    const pageParam = parseInt(searchParams.get('page')) || 1;
+    const qParam = searchParams.get('q') || '';
+    setCurrentPage(pageParam);
+    setSearchTerm(qParam);
+  }, [searchParams]);
+
+  useEffect(() => {
+    // extracted so we can refresh after deletes
     const fetchProducts = async () => {
       try {
         const response = await productService.getAllProducts();
-        setProducts(response.data);
+        // Sort products by ID in descending order (newest first)
+        const sortedProducts = (response.data || []).sort((a, b) => b.id - a.id);
+        setProducts(sortedProducts);
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching products:', error);
         setIsLoading(false);
       }
     };
-    
+
     fetchProducts();
+    // expose fetchProducts for handlers via ref-like pattern
+    // (simple local assignment works for our small component)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1); // Reset to first page on search
-  };
-  
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-  };
-  
-  const confirmDelete = (product) => {
-    setProductToDelete(product);
-    setDeleteModalShow(true);
-  };
-  
-  const handleDelete = async () => {
-    if (!productToDelete) return;
-    
+
+  // Handler: delete a product
+  const handleDelete = async (productId) => {
     try {
-      await productService.deleteProduct(productToDelete.id);
-      // Remove deleted product from state
-      setProducts(prevProducts => 
-        prevProducts.filter(p => p.id !== productToDelete.id)
-      );
-      setDeleteModalShow(false);
-      setProductToDelete(null);
+      // Show a nicer confirmation dialog using SweetAlert2
+      const SwalModule = await import('sweetalert2');
+      const Swal = SwalModule.default || SwalModule;
+      const confirm = await Swal.fire({
+        title: 'Delete product?',
+        text: 'This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#dc3545'
+      });
+
+      if (!confirm.isConfirmed) return;
+
+      // optimistic update: remove locally first
+      const prevProducts = products;
+      setProducts(prev => prev.filter(p => p.id !== productId));
+
+      try {
+        const resp = await productService.deleteProduct(productId);
+        // Success: show success toast
+        try { await showSuccess(resp?.data || 'Product deleted'); } catch (e) { /* ignore */ }
+      } catch (err) {
+        // restore previous list on failure
+        setProducts(prevProducts);
+        // extract human-friendly message from server response
+        let serverMsg = 'Failed to delete product. Please try again.';
+        try {
+          const data = err?.response?.data;
+          if (typeof data === 'string') serverMsg = data;
+          else if (data && typeof data === 'object') {
+            // Common shapes: { message: '...', error: '...' } or plain map
+            serverMsg = data.message || data.error || JSON.stringify(data);
+          } else if (err?.message) serverMsg = err.message;
+        } catch (ex) {
+          serverMsg = err?.message || serverMsg;
+        }
+
+        // If server returned 409 (referential integrity), offer force-delete
+        const status = err?.response?.status;
+        try {
+          if (status === 409) {
+            const SwalModule = await import('sweetalert2');
+            const Swal = SwalModule.default || SwalModule;
+            const res = await Swal.fire({
+              title: 'Referenced by orders',
+              text: serverMsg + '\nDo you want to force-delete this product? This will remove related order items.',
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonText: 'Force Delete',
+              cancelButtonText: 'Cancel',
+              confirmButtonColor: '#d33'
+            });
+            if (res.isConfirmed) {
+              try {
+                const fResp = await productService.forceDeleteProduct(productId);
+                // remove optimistically
+                setProducts(prev => prev.filter(p => p.id !== productId));
+                await showSuccess(fResp?.data?.message || 'Product force-deleted');
+                return;
+              } catch (fErr) {
+                const fm = fErr?.response?.data || fErr?.message || 'Force delete failed';
+                await showError(typeof fm === 'object' ? JSON.stringify(fm) : fm);
+                return;
+              }
+            }
+          }
+        } catch (swalErr) {
+          /* ignore */
+        }
+
+        try { await showError(serverMsg); } catch (e) { /* ignore */ }
+      }
     } catch (error) {
-      console.error('Error deleting product:', error);
-      alert('Failed to delete product. Please try again.');
+      console.error('Failed to delete product', error);
+      try { await showError(error?.response?.data?.message || 'Failed to delete product. Please try again.'); } catch (e) { /* ignore */ }
     }
+  };
+
+  const handleSearch = (e) => {
+    const q = e.target.value;
+    setSearchTerm(q);
+    setCurrentPage(1); // Reset to first page on search
+    // update url params (keep page=1)
+    setSearchParams({ page: '1', q });
+  };
+
+  const handlePageChange = (e, pageNumber) => {
+    // prevent default link behavior if any
+    if (e && e.preventDefault) e.preventDefault();
+    // preserve current scroll position and restore after update
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    setCurrentPage(pageNumber);
+    const q = searchTerm || '';
+    setSearchParams({ page: String(pageNumber), q });
+    // wait for layout updates, then restore scroll
+    requestAnimationFrame(() => {
+      // use another frame to be safe
+      requestAnimationFrame(() => window.scrollTo(0, scrollY));
+    });
   };
 
   return (
     <Container fluid className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Product Management</h1>
-        <Button as={Link} to="/admin/products/add" variant="primary">
-          Add New Product
-        </Button>
+      {/* Modern Header */}
+      <div className="admin-header">
+        <div className="row align-items-center">
+          <div className="col">
+            <h1 className="h2 mb-1 accent-text">
+              <i className="bi bi-box-seam-fill me-3"></i>
+              Product Management
+            </h1>
+            <p className="text-muted mb-0">Manage product inventory, update prices, and add new products.</p>
+          </div>
+          <div className="col-auto">
+            <Button as={Link} to="/admin/products/add" className="modern-btn">
+              <i className="bi bi-plus-lg me-2"></i>
+              Add New Product
+            </Button>
+          </div>
+        </div>
       </div>
-      
-      {/* Search and filter */}
-      <InputGroup className="mb-3">
-        <Form.Control
-          placeholder="Search products by name, brand, or category..."
-          value={searchTerm}
-          onChange={handleSearch}
-        />
-        <Button 
-          variant="outline-secondary"
-          onClick={() => setSearchTerm('')}
-        >
-          Clear
-        </Button>
-      </InputGroup>
-      
+
+      {/* Search and filter (constrained width, modern appearance) */}
+      <div className="mb-3 product-search-wrapper">
+        <div className="product-search-group">
+          <button className="product-search-icon" aria-hidden="true">
+            <i className="bi bi-search" />
+          </button>
+          <Form.Control
+            className="product-search-input"
+            placeholder="Search products by name, brand, or category..."
+            value={searchTerm}
+            onChange={handleSearch}
+            aria-label="Search products"
+          />
+          <button
+            className="product-search-clear-btn"
+            title="Clear search"
+            aria-label="Clear search"
+            onClick={() => {
+              setSearchTerm('');
+              setSearchParams({ page: '1', q: '' });
+            }}
+          >
+            <i className="bi bi-x-lg" />
+          </button>
+        </div>
+      </div>
+
       {isLoading ? (
         <div className="text-center py-5">
           <p>Loading products...</p>
         </div>
       ) : (
         <>
-          <Table responsive striped hover>
+          <Table responsive className="product-table">
             <thead>
               <tr>
                 <th>Image</th>
@@ -119,14 +259,14 @@ function ProductList() {
                 currentProducts.map(product => (
                   <tr key={product.id}>
                     <td width="80">
-                      <img 
-                        src={product.imageUrl || 'https://via.placeholder.com/50'} 
+                      <ImageWithFallback
+                        src={getImageUrl(product.images)}
                         alt={product.name}
-                        style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                        style={{ width: '56px', height: '56px' }}
                       />
                     </td>
                     <td>
-                      <Link to={`/admin/products/edit/${product.id}`}>
+                      <Link to={`/admin/products/edit/${product.id}`} className="product-name-link">
                         {product.name}
                       </Link>
                     </td>
@@ -144,18 +284,21 @@ function ProductList() {
                     </td>
                     <td>
                       <div className="d-flex gap-2">
-                        <Button 
-                          as={Link} 
-                          to={`/admin/products/edit/${product.id}`} 
-                          variant="outline-primary" 
+                        <Button
+                          as={Link}
+                          to={`/admin/products/edit/${product.id}`}
+                          variant="outline-primary"
                           size="sm"
+                          className="product-action-btn"
                         >
                           Edit
                         </Button>
-                        <Button 
-                          variant="outline-danger" 
+
+                        <Button
+                          variant="outline-danger"
                           size="sm"
-                          onClick={() => confirmDelete(product)}
+                          className="product-action-btn"
+                          onClick={() => handleDelete(product.id)}
                         >
                           Delete
                         </Button>
@@ -172,20 +315,20 @@ function ProductList() {
               )}
             </tbody>
           </Table>
-          
+
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="d-flex justify-content-center">
               <Pagination>
-                <Pagination.First 
-                  onClick={() => handlePageChange(1)} 
+                <Pagination.First
+                  onClick={(e) => handlePageChange(e, 1)}
                   disabled={currentPage === 1}
                 />
-                <Pagination.Prev 
-                  onClick={() => handlePageChange(currentPage - 1)} 
+                <Pagination.Prev
+                  onClick={(e) => handlePageChange(e, currentPage - 1)}
                   disabled={currentPage === 1}
                 />
-                
+
                 {Array.from({ length: totalPages }).map((_, index) => {
                   const pageNumber = index + 1;
                   // Show current page and 2 pages before and after
@@ -198,7 +341,7 @@ function ProductList() {
                       <Pagination.Item
                         key={pageNumber}
                         active={pageNumber === currentPage}
-                        onClick={() => handlePageChange(pageNumber)}
+                        onClick={(e) => handlePageChange(e, pageNumber)}
                       >
                         {pageNumber}
                       </Pagination.Item>
@@ -211,13 +354,13 @@ function ProductList() {
                   }
                   return null;
                 })}
-                
-                <Pagination.Next 
-                  onClick={() => handlePageChange(currentPage + 1)} 
+
+                <Pagination.Next
+                  onClick={(e) => handlePageChange(e, currentPage + 1)}
                   disabled={currentPage === totalPages}
                 />
-                <Pagination.Last 
-                  onClick={() => handlePageChange(totalPages)} 
+                <Pagination.Last
+                  onClick={(e) => handlePageChange(e, totalPages)}
                   disabled={currentPage === totalPages}
                 />
               </Pagination>
@@ -225,25 +368,6 @@ function ProductList() {
           )}
         </>
       )}
-      
-      {/* Delete confirmation modal */}
-      <Modal show={deleteModalShow} onHide={() => setDeleteModalShow(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Delete</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          Are you sure you want to delete <strong>{productToDelete?.name}</strong>?
-          This action cannot be undone.
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setDeleteModalShow(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Delete
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </Container>
   );
 }

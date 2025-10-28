@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Container, Table, Button, Form, InputGroup, Pagination, Badge, Modal } from 'react-bootstrap';
-import { userService } from '../../services/api';
+import { Container, Table, Button, Form, InputGroup, Pagination, Badge, Modal, Row, Col } from 'react-bootstrap';
+import { userService } from '../../lib/api';
+import { getImageUrl, isValidImageFile, formatFileSize } from '../../lib/utils';
 
 function Users() {
   const [users, setUsers] = useState([]);
@@ -13,223 +14,404 @@ function Users() {
   const [userFormData, setUserFormData] = useState({
     firstName: '',
     lastName: '',
+    password: '',
+    oldPassword: '',
     email: '',
-    role: ''
+    gender: '',
+    role: 'USER',
+    images: null
   });
-  
+  const [isCreating, setIsCreating] = useState(false);
+
   const usersPerPage = 10;
-  
-  // Filter users based on search term and role
-  const filteredUsers = users.filter(user => {
-    // Search by name or email
-    const searchMatch = 
-      searchTerm === '' || 
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Filter by role
-    const roleMatch = roleFilter === '' || user.role === roleFilter;
-    
-    return searchMatch && roleMatch;
-  });
-  
+
+  // Helper to compute a display name from available fields
+  const getDisplayName = (u) => {
+    if (!u) return '';
+    if (u.name && String(u.name).trim() !== '') return String(u.name);
+    const first = u.firstName || u.first_name || '';
+    const last = u.lastName || u.last_name || '';
+    const full = `${first} ${last}`.trim();
+    return full || (u.email || '');
+  };
+
+  // Filter users based on search term and gender
+  // Only show users whose role contains 'user' (case-insensitive). This allows
+  // variations like 'user', 'users', 'ROLE_USER', etc. Admin roles will be hidden.
+  const filteredUsers = users
+    .filter(u => {
+      const role = (u.role || '').toString().toLowerCase();
+      return role.includes('user');
+    })
+    .filter(user => {
+      const lowerSearch = searchTerm.toLowerCase();
+      const nameValue = getDisplayName(user).toLowerCase();
+      const searchMatch = searchTerm === '' || nameValue.includes(lowerSearch) || (user.email || '').toLowerCase().includes(lowerSearch);
+
+      const genderMatch = roleFilter === '' || (user.gender || '').toString() === roleFilter;
+      return searchMatch && genderMatch;
+    });
+
   // Paginate users
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
-  
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const response = await userService.getAllUsers();
-        setUsers(response.data);
+        // Keep the full list in state but the UI will only surface users with role USER
+        setUsers(response.data || []);
         setIsLoading(false);
       } catch (error) {
-        console.error('Error fetching users:', error);
+        if (import.meta.env.DEV && window.__SUPPRESS_CONSOLE === false) console.error('Error fetching users:', error);
         setIsLoading(false);
       }
     };
-    
+
     fetchUsers();
   }, []);
-  
+
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1); // Reset to first page on search
   };
-  
+
   const handleRoleFilter = (e) => {
     setRoleFilter(e.target.value);
     setCurrentPage(1); // Reset to first page on filter change
   };
-  
+
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
-  
+
   const handleEditUser = (user) => {
     setSelectedUser(user);
     setUserFormData({
-      firstName: user.firstName,
-      lastName: user.lastName,
+      firstName: user.firstName || user.first_name || (user.name ? String(user.name).split(' ').slice(0, 1).join('') : ''),
+      lastName: user.lastName || user.last_name || (user.name ? String(user.name).split(' ').slice(1).join(' ') : ''),
+      password: '', // Don't populate password for security
+      oldPassword: '', // Clear old password field
       email: user.email,
-      role: user.role
+      gender: user.gender,
+      role: user.role ?? 'USER',
+      images: null
     });
+    setIsCreating(false);
     setShowModal(true);
   };
-  
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setUserFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+
+  const handleCreateUser = () => {
+    setSelectedUser(null);
+    setUserFormData({
+      firstName: '',
+      lastName: '',
+      password: '',
+      oldPassword: '',
+      email: '',
+      gender: 'M',
+      role: 'USER',
+      images: null
+    });
+    setIsCreating(true);
+    setShowModal(true);
   };
-  
-  const handleSaveUser = async () => {
-    if (!selectedUser) return;
-    
+
+  const handleDeleteUser = async (userId) => {
     try {
-      await userService.updateUser(selectedUser.id, userFormData);
-      
-      // Update user in the state
-      const updatedUsers = users.map(user => 
-        user.id === selectedUser.id ? { ...user, ...userFormData } : user
-      );
-      setUsers(updatedUsers);
-      
-      setShowModal(false);
-      setSelectedUser(null);
-    } catch (error) {
-      console.error('Error updating user:', error);
-      alert('Failed to update user. Please try again.');
+      const SwalModule = await import('sweetalert2');
+      const Swal = SwalModule.default || SwalModule;
+      const confirm = await Swal.fire({
+        title: 'Delete user?',
+        text: 'This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#dc3545'
+      });
+
+      if (!confirm.isConfirmed) return;
+
+      // optimistic update
+      const prev = users;
+      setUsers(prev.filter(u => u.id !== userId));
+
+      try {
+        const resp = await userService.deleteUser(userId);
+        const notify = await import('../../lib/notify');
+        try { await notify.showSuccess(resp?.data?.message || 'User deleted'); } catch (e) { }
+      } catch (err) {
+        // restore
+        setUsers(prev);
+        const notify = await import('../../lib/notify');
+        const msg = err?.response?.data?.message || err?.message || 'Failed to delete user';
+        try { await notify.showError(msg); } catch (e) { alert(msg); }
+      }
+    } catch (e) {
+      if (import.meta.env.DEV && window.__SUPPRESS_CONSOLE === false) console.error('delete user flow failed', e);
+      alert('Failed to delete user. Please try again.');
     }
   };
-  
-  const getRoleBadgeVariant = (role) => {
-    switch (role) {
-      case 'ADMIN':
-        return 'danger';
-      case 'MANAGER':
-        return 'warning';
-      case 'USER':
+
+  const handleFormChange = (e) => {
+    const { name, value, files } = e.target;
+
+    if (name === 'images' && files && files.length > 0) {
+      const file = files[0];
+      if (!isValidImageFile(file)) {
+        alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+        e.target.value = '';
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        alert(`File size too large. Maximum size is 5MB. Your file is ${formatFileSize(file.size)}`);
+        e.target.value = '';
+        return;
+      }
+    }
+
+    setUserFormData(prev => ({
+      ...prev,
+      [name]: files ? files : value
+    }));
+  };
+
+  const handleSaveUser = async () => {
+    try {
+      if (isCreating) {
+        // Create new user using FormData with first_name/last_name
+        const fd = new FormData();
+        fd.append('first_name', userFormData.firstName || '');
+        fd.append('last_name', userFormData.lastName || '');
+        fd.append('password', userFormData.password || '');
+        fd.append('email', userFormData.email || '');
+        fd.append('gender', userFormData.gender ? String(userFormData.gender).charAt(0) : '');
+        if (userFormData.role) fd.append('role', userFormData.role);
+        if (userFormData.images && userFormData.images.length > 0) fd.append('images', userFormData.images[0]);
+        const response = await userService.createUser(fd);
+        // backend returns a success string; to keep UI updated, refetch or append from response if available
+        // We'll optimistically append using the created fields (server id may not be present)
+        setUsers(prev => [...prev, { id: response?.data?.id || Date.now(), firstName: userFormData.firstName, lastName: userFormData.lastName, email: userFormData.email, gender: userFormData.gender, role: userFormData.role, images: response?.data?.images || null }]);
+
+        setShowModal(false);
+        setSelectedUser(null);
+        setIsCreating(false);
+
+        // Show success message and refresh page
+        const notify = await import('../../lib/notify');
+        try {
+          await notify.showSuccess('User created successfully! Refreshing page...');
+          setTimeout(() => window.location.reload(), 1500);
+        } catch (e) {
+          alert('User created successfully!');
+          setTimeout(() => window.location.reload(), 1500);
+        }
+      } else {
+        // Update existing user
+        if (!selectedUser) return;
+        const fd = new FormData();
+        fd.append('first_name', userFormData.firstName || '');
+        fd.append('last_name', userFormData.lastName || '');
+
+        // Only include password fields if user wants to change password
+        if (userFormData.password && userFormData.password.trim() !== '') {
+          if (!userFormData.oldPassword || userFormData.oldPassword.trim() === '') {
+            alert('Please enter the old password to change the password');
+            return;
+          }
+          fd.append('password', userFormData.password);
+          fd.append('old_password', userFormData.oldPassword);
+        }
+
+        fd.append('email', userFormData.email || '');
+        if (userFormData.gender) fd.append('gender', String(userFormData.gender).charAt(0));
+        if (userFormData.role) fd.append('role', userFormData.role);
+        if (userFormData.images && userFormData.images.length > 0) fd.append('images', userFormData.images[0]);
+
+        const response = await userService.updateUser(selectedUser.id, fd);
+
+        // Check if response indicates password error
+        const responseText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+        if (responseText.includes('Old password is incorrect')) {
+          alert('Old password is incorrect. Please try again.');
+          return;
+        }
+        if (responseText.includes('Old password is required')) {
+          alert('Old password is required to change password.');
+          return;
+        }
+
+        // Update user in state optimistically
+        const updatedUsers = users.map(u => u.id === selectedUser.id ? { ...u, firstName: userFormData.firstName, lastName: userFormData.lastName, email: userFormData.email, gender: userFormData.gender, images: u.images } : u);
+        setUsers(updatedUsers);
+
+        setShowModal(false);
+        setSelectedUser(null);
+        setIsCreating(false);
+
+        // Show success message and refresh page
+        const notify = await import('../../lib/notify');
+        try {
+          await notify.showSuccess('User updated successfully! Refreshing page...');
+          setTimeout(() => window.location.reload(), 1500);
+        } catch (e) {
+          alert('User updated successfully!');
+          setTimeout(() => window.location.reload(), 1500);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving user:', error);
+      alert(`Failed to ${isCreating ? 'create' : 'update'} user. Please try again.`);
+    }
+  };
+
+  const getGenderBadgeVariant = (gender) => {
+    switch (gender) {
+      case 'F':
+        return 'success';
+      case 'M':
+        return 'primary';
       default:
-        return 'info';
+        return 'secondary';
     }
   };
 
   return (
     <Container fluid className="py-4">
-      <h1 className="mb-4">User Management</h1>
-      
-      {/* Filters */}
-      <div className="mb-4 row">
+      {/* Modern Header */}
+      <div className="admin-header">
+        <Row className="align-items-center">
+          <Col>
+            <h1 className="h2 mb-1 accent-text">
+              <i className="bi bi-people-fill"> </i>
+
+              User Management
+            </h1>
+            <p className="text-muted mb-0">Manage user accounts, edit profiles and roles, or create new users.</p>
+          </Col>
+          <Col xs="auto">
+            <div className="d-flex gap-2">
+              <Button onClick={handleCreateUser} className="modern-btn" aria-label="Create user">
+                <i className="bi bi-plus-lg me-2"></i>
+                Create New User
+              </Button>
+            </div>
+          </Col>
+        </Row>
+      </div>
+      {/* Filters and actions */}
+      <div className="mb-4 row align-items-center gx-3">
         <div className="col-md-6">
-          <InputGroup>
-            <InputGroup.Text>Search</InputGroup.Text>
+          <InputGroup className="shadow-sm rounded-pill overflow-hidden" style={{ border: '1px solid rgba(15,23,42,0.06)' }}>
+            <InputGroup.Text className="bg-white border-0 px-3">
+              <i className="bi bi-search text-muted" />
+            </InputGroup.Text>
             <Form.Control
-              placeholder="Search by name or email..."
+              placeholder="Search users by name or email..."
               value={searchTerm}
               onChange={handleSearch}
+              className="border-0"
+              style={{ boxShadow: 'none' }}
             />
-            <Button 
-              variant="outline-secondary"
+            <Button
+              variant="light"
               onClick={() => setSearchTerm('')}
+              className="border-0 rounded-end"
+              style={{ color: '#6b7280' }}
             >
-              Clear
+              <i className="bi bi-x-lg" />
             </Button>
           </InputGroup>
         </div>
-        
-        <div className="col-md-3">
-          <InputGroup>
-            <InputGroup.Text>Role</InputGroup.Text>
-            <Form.Select
-              value={roleFilter}
-              onChange={handleRoleFilter}
-            >
-              <option value="">All Roles</option>
-              <option value="ADMIN">Admin</option>
-              <option value="MANAGER">Manager</option>
-              <option value="USER">User</option>
-            </Form.Select>
-          </InputGroup>
-        </div>
       </div>
-      
+
+
+
       {isLoading ? (
         <div className="text-center py-5">
           <p>Loading users...</p>
         </div>
       ) : (
         <>
-          <Table responsive striped hover>
+          <Table responsive className="product-table users-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th style={{ width: 48 }}>#</th>
+                <th style={{ width: 260 }}>Profile Image</th>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Role</th>
-                <th>Joined</th>
-                <th>Actions</th>
+                <th style={{ width: 100 }}>Gender</th>
+                <th style={{ width: 350 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {currentUsers.length > 0 ? (
-                currentUsers.map(user => (
+                currentUsers.map((user, idx) => (
                   <tr key={user.id}>
-                    <td>{user.id}</td>
-                    <td>{`${user.firstName} ${user.lastName}`}</td>
+                    <td>{indexOfFirstUser + idx + 1}</td>
+                    <td>
+                      {user.images ? (
+                        <img
+                          src={getImageUrl(user.images)}
+                          alt={user.name}
+                          className="rounded-circle"
+                          style={{ width: 44, height: 44, objectFit: 'cover', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+                        />
+                      ) : (
+                        <div className="no-image-placeholder rounded-circle" style={{ width: 44, height: 44 }}>
+                          <i className="bi bi-person text-muted" style={{ fontSize: '1.1rem' }} />
+                        </div>
+                      )}
+                    </td>
+                    <td>{getDisplayName(user)}</td>
                     <td>{user.email}</td>
                     <td>
-                      <Badge bg={getRoleBadgeVariant(user.role)}>
-                        {user.role}
+                      <Badge bg={getGenderBadgeVariant(user.gender)}>
+                        {user.gender === 'M' ? 'Male' : user.gender === 'F' ? 'Female' : 'Other'}
                       </Badge>
                     </td>
-                    <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                     <td>
-                      <Button 
-                        onClick={() => handleEditUser(user)} 
-                        variant="outline-primary" 
-                        size="sm"
-                      >
-                        Edit
-                      </Button>
+                      <div className="d-flex justify-content-center gap-2">
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          <i className="bi bi-pencil-square me-1" /> Edit
+                        </Button>
+
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.id)}
+                        >
+                          <i className="bi bi-trash me-1" /> Delete
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="text-center">
-                    No users found.
+                  <td colSpan="6" className="text-center py-4">
+                    {searchTerm ? 'No users match your search criteria.' : 'No users available.'}
                   </td>
                 </tr>
               )}
             </tbody>
           </Table>
-          
-          {/* User summary */}
-          <div className="mb-4">
-            <p className="mb-0">
-              Showing {filteredUsers.length} of {users.length} users
-            </p>
-          </div>
-          
+
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="d-flex justify-content-center">
+            <div className="d-flex justify-content-center mt-3">
               <Pagination>
-                <Pagination.First 
-                  onClick={() => handlePageChange(1)} 
-                  disabled={currentPage === 1}
-                />
-                <Pagination.Prev 
-                  onClick={() => handlePageChange(currentPage - 1)} 
-                  disabled={currentPage === 1}
-                />
-                
+                <Pagination.First onClick={() => handlePageChange(1)} disabled={currentPage === 1} />
+                <Pagination.Prev onClick={() => handlePageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1} />
+
                 {Array.from({ length: totalPages }).map((_, index) => {
                   const pageNumber = index + 1;
                   if (
@@ -238,95 +420,94 @@ function Users() {
                     (pageNumber >= currentPage - 2 && pageNumber <= currentPage + 2)
                   ) {
                     return (
-                      <Pagination.Item
-                        key={pageNumber}
-                        active={pageNumber === currentPage}
-                        onClick={() => handlePageChange(pageNumber)}
-                      >
+                      <Pagination.Item key={pageNumber} active={pageNumber === currentPage} onClick={() => handlePageChange(pageNumber)}>
                         {pageNumber}
                       </Pagination.Item>
                     );
-                  } else if (
-                    pageNumber === currentPage - 3 ||
-                    pageNumber === currentPage + 3
-                  ) {
+                  }
+                  if (pageNumber === currentPage - 3 || pageNumber === currentPage + 3) {
                     return <Pagination.Ellipsis key={pageNumber} />;
                   }
                   return null;
                 })}
-                
-                <Pagination.Next 
-                  onClick={() => handlePageChange(currentPage + 1)} 
-                  disabled={currentPage === totalPages}
-                />
-                <Pagination.Last 
-                  onClick={() => handlePageChange(totalPages)} 
-                  disabled={currentPage === totalPages}
-                />
+
+                <Pagination.Next onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} />
+                <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />
               </Pagination>
             </div>
           )}
         </>
       )}
-      
-      {/* Edit User Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
+      {/* Create / Edit modal */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Edit User</Modal.Title>
+          <Modal.Title>{isCreating ? 'Create User' : 'Edit User'}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>First Name</Form.Label>
-              <Form.Control
-                type="text"
-                name="firstName"
-                value={userFormData.firstName}
-                onChange={handleFormChange}
-              />
-            </Form.Group>
-            
-            <Form.Group className="mb-3">
-              <Form.Label>Last Name</Form.Label>
-              <Form.Control
-                type="text"
-                name="lastName"
-                value={userFormData.lastName}
-                onChange={handleFormChange}
-              />
-            </Form.Group>
-            
+            <div className="row">
+              <div className="col-md-6">
+                <Form.Group className="mb-3">
+                  <Form.Label>First name</Form.Label>
+                  <Form.Control name="firstName" value={userFormData.firstName} onChange={handleFormChange} />
+                </Form.Group>
+              </div>
+              <div className="col-md-6">
+                <Form.Group className="mb-3">
+                  <Form.Label>Last name</Form.Label>
+                  <Form.Control name="lastName" value={userFormData.lastName} onChange={handleFormChange} />
+                </Form.Group>
+              </div>
+            </div>
             <Form.Group className="mb-3">
               <Form.Label>Email</Form.Label>
+              <Form.Control name="email" value={userFormData.email} onChange={handleFormChange} />
+            </Form.Group>
+
+            {!isCreating && (
+              <Form.Group className="mb-3">
+                <Form.Label>Old Password <small className="text-muted">(required to change password)</small></Form.Label>
+                <Form.Control
+                  name="oldPassword"
+                  type="password"
+                  value={userFormData.oldPassword}
+                  onChange={handleFormChange}
+                  placeholder="Enter old password if changing password"
+                />
+              </Form.Group>
+            )}
+
+            <Form.Group className="mb-3">
+              <Form.Label>
+                {isCreating ? 'Password' : 'New Password'}
+                {!isCreating && <small className="text-muted"> (leave blank to keep current)</small>}
+              </Form.Label>
               <Form.Control
-                type="email"
-                name="email"
-                value={userFormData.email}
+                name="password"
+                type="password"
+                value={userFormData.password}
                 onChange={handleFormChange}
+                placeholder={isCreating ? 'Enter password' : 'Enter new password'}
               />
             </Form.Group>
-            
+
             <Form.Group className="mb-3">
-              <Form.Label>Role</Form.Label>
-              <Form.Select
-                name="role"
-                value={userFormData.role}
-                onChange={handleFormChange}
-              >
-                <option value="USER">User</option>
-                <option value="MANAGER">Manager</option>
-                <option value="ADMIN">Admin</option>
+              <Form.Label>Gender</Form.Label>
+              <Form.Select name="gender" value={userFormData.gender} onChange={handleFormChange}>
+                <option value="">Select gender</option>
+                <option value="M">Male</option>
+                <option value="F">Female</option>
               </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Profile Image</Form.Label>
+              <Form.Control name="images" type="file" accept="image/*" onChange={handleFormChange} />
             </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleSaveUser}>
-            Save Changes
-          </Button>
+          <Button variant="danger" onClick={() => setShowModal(false)}>Cancel</Button>
+          <Button variant="success" onClick={handleSaveUser}>{isCreating ? 'Create' : 'Update'}</Button>
         </Modal.Footer>
       </Modal>
     </Container>

@@ -1,0 +1,237 @@
+:root {
+  --primary-color: #ff8c00;
+  /* Orange as main color */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  --secondary-color: #2e8b57;
+  /* Green as secondary color */
+  --success-color: #28a745;
+  --danger-color: #dc3545;
+  --warning-color: #ffc107;
+  --info-color: #17a2b8;
+  --light-color: #f8f9fa;
+  --dark-color: #343a40;
+
+  /* Custom theme colors */
+  --orange-main: #ff8c00;
+  --orange-light: #ffac4d;
+  --orange-dark: #cc7000;
+  --green-main: #2e8b57;
+  --green-light: #4daa76;
+  --green-dark: #1a5034;
+}
+
+/* Khmer font: apply when Khmer is active (body.lang-kh) */
+@font-face {
+  font-family: 'Khmer OS Siemreap';
+  /* The project may provide the font file under public/fonts; if not present, the browser will ignore this rule and fall back */
+  /* Place the file at: public/fonts/KhmerOSSiemreap.ttf for this to load in production
+     If you don't have the font file, the browser will fall back to the Khmer system fonts. */
+  src: local('Khmer OS Siemreap'), url('/fonts/KhmerOSSiemreap.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+body.lang-kh {
+  /* Prefer Khmer OS Siemreap, then common Khmer system fonts, then the default UI font */
+  font-family: 'Khmer OS Siemreap', 'Noto Sans Khmer', 'Battambang', 'Moul', var(--font-family);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f8f9fa;
+  color: #212529;
+}
+
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+a:hover {
+  color: #1a2030;
+  /* dark navy */
+  text-decoration: underline;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  /* inherit from body so body.lang-kh applies Khmer font to headings */
+  font-family: inherit;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+  letter-spacing: -0.02em;
+}
+
+/* Fix Khmer letter spacing and transforms for headings when Khmer font is active */
+body.lang-kh h1,
+body.lang-kh h2,
+body.lang-kh h3,
+body.lang-kh h4,
+body.lang-kh h5,
+body.lang-kh h6 {
+  /* Khmer scripts need normal letter spacing and no forced transforms */
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+/* Also force hero titles/descriptions to use normal spacing in Khmer */
+body.lang-kh .hero-title,
+body.lang-kh .hero-description {
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+h1 {
+  font-size: 2.1rem;
+}
+
+h2 {
+  font-size: 1.6rem;
+}
+
+h3 {
+  font-size: 1.25rem;
+}
+
+h4 {
+  font-size: 1.05rem;
+}
+
+small,
+.small {
+  font-size: 0.85rem;
+}
+
+/* Custom classes for the guitar shop */
+.product-image:hover {
+  transform: scale(1.05);
+  transition: transform 0.3s ease;
+}
+
+.badge {
+  font-weight: 500;
+  padding: 0.25em 0.5em;
+}
+
+/* Footer always at bottom */
+.min-vh-100 {
+  min-height: 100vh;
+}
+
+/* Bootstrap overrides */
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+  background-color: #1a2030;
+  /* dark navy */
+  border-color: #1a2030;
+  /* dark navy */
+}
+
+/* Form controls */
+.form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+}
+
+/* Orange utility classes */
+.text-orange {
+  color: var(--orange-main) !important;
+}
+
+.border-orange {
+  border-color: var(--orange-main) !important;
+}
+
+/* Make sure images inside team cards behave nicely */
+.team-image-wrapper img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Team card centering */
+.team-card .card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  /* keep content starting from top but centered horizontally */
+  min-height: 360px;
+  /* ensure consistent card heights; tweak as needed */
+}
+
+/* If you want the image itself centered as a fixed square, use this helper */
+.team-card .team-image-wrapper {
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-top: 10px auto 8px auto;
+}
+
+.team-card .team-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+  /* keep circular portraits — remove if you want rectangular */
+}
+
+/* Nudge portrait crop so heads aren't cropped off — adjust the second value (Y) as needed */
+:root {
+  --team-portrait-object-position-y: 10%;
+}
+
+.team-card .team-image-wrapper img {
+  object-position: 50% var(--team-portrait-object-position-y);
+}
+
+/* Save button - orange with white text and darker hover/focus/active states */
+.btn.btn-save-orange,
+.btn-save-orange {
+  background-color: #ff7a00 !important;
+  color: #ffffff !important;
+}
+
+.btn.btn-save-orange:hover,
+.btn-save-orange:hover,
+.btn-save-orange:focus {
+  background-color: #e06600 !important;
+  /* slightly darker orange */
+  color: #ffffff !important;
+  text-decoration: none;
+}
+
+/* Make danger buttons slightly lighter on hover and keep white text for better visual feedback */
+.btn-danger {
+  background-color: var(--danger-color);
+  border-color: var(--danger-color);
+  color: #ffffff;
+}
+
+.btn-danger:hover,
+.btn-danger:focus {
+  /* slightly lighter red on hover */
+  background-color: #e35b5b !important;
+  border-color: #e35b5b !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(220, 53, 69, 0.12);
+  transform: translateY(-2px);
+}

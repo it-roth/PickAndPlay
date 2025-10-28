@@ -1,0 +1,167 @@
+/* Shipping/Banner Section Styles */
+.shipping-banner {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+.shipping-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+@media (max-width: 768px) {
+  .shipping-banner {
+    flex-direction: column; /* stack on small screens */
+  }
+  .shipping-banner img {
+    max-width: 100%; /* full width on small screens */
+    margin-right: 0; /* no margin */
+  }
+}
+/* Two-image layout: left 40% / right 60% */
+.shipping-banner {
+  gap: 0;
+}
+.shipping-banner-image-left { width: 40%; overflow: hidden; }
+.shipping-banner-image-left img { width: 100%; height: 100%; object-fit: cover; }
+.shipping-banner-image-right { width: 60%; overflow: hidden; }
+.shipping-banner-image-right img { width: 100%; height: 100%; object-fit: cover; }
+.shipping-banner-content { display: none; }
+
+/* Overlay CTA styles for banner images */
+.shipping-banner-image-left,
+.shipping-banner-image-right { position: relative; }
+.overlay-cta { position: absolute; z-index: 5; }
+.overlay-cta-left { left: 16px; bottom: 16px; transform: none; }
+.overlay-cta-right { right: 16px; bottom: 16px; transform: none; }
+.overlay-cta .pp-btn { padding: 10px 20px; }
+
+@media (max-width: 768px) {
+  .overlay-cta { position: relative; left: auto; right: auto; bottom: auto; transform: none; margin: 12px auto 0; display: flex; justify-content: center; }
+  .overlay-cta-left, .overlay-cta-right { position: relative; }
+}
+@media (max-width: 768px) {
+  .shipping-banner-image-left, .shipping-banner-image-right { width: 100%; }
+  .shipping-banner-content { display: none; }
+  .shipping-banner-image-right img { filter: none; }
+}
+/* Scoped Home page styles (home.page.css)
+   This file is intended to replace or augment Home.css for the Home page only.
+   It avoids touching global navbar styles and keeps Home layout isolated.
+*/
+
+.modern-home {
+  overflow-x: hidden;
+  background: linear-gradient(180deg, rgba(11,34,64,0.02), rgba(11,34,64,0.00));
+}
+
+
+
+/* Shop Now button styles (used on multiple places) */
+.shop-now-btn,
+.shop-now-btn-custom,
+.pp-btn {
+  --btn-accent: #ff7a00;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  gap: 0.5rem;
+  padding: 12px 28px; /* taller and wider like the reference; increased for longer pill */
+  min-width: 10px; /* ensure pill has a longer baseline width */
+  background: linear-gradient(180deg, var(--btn-accent), #e25800);
+  color: #fff !important;
+  border: 0;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.4px;
+  box-shadow: 0 6px 22px rgba(3,10,18,0.18); /* slightly darker subtle shadow */
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.12s ease;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.shop-now-btn:hover,
+.shop-now-btn-custom:hover,
+.pp-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 40px rgba(3,10,18,0.22);
+}
+
+/* Absolute icon inside pill so label remains visually centered */
+.shop-now-btn .shop-now-icon,
+.shop-now-btn-custom .shop-now-icon,
+.pp-btn .btn-icon--abs,
+.pp-with-icon .btn-icon--abs {
+  position: absolute;
+  right: 14px; /* icon sits visually at the right edge */
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.15rem; /* slightly larger arrow like the reference */
+  opacity: 0.98;
+  color: #fff; /* force white icon */
+}
+
+/* Smooth icon motion and ensure no layout shift: only transform on hover */
+.shop-now-btn .shop-now-icon,
+.shop-now-btn-custom .shop-now-icon,
+.pp-btn .btn-icon--abs {
+  transition: transform 180ms ease, opacity 120ms ease;
+  transform-origin: center;
+  pointer-events: none; /* allow link clicks through the icon */
+}
+
+.shop-now-btn:hover .shop-now-icon,
+.shop-now-btn-custom:hover .shop-now-icon,
+.pp-btn:hover .btn-icon--abs {
+  transform: translateY(-50%) translateX(6px);
+}
+
+/* When using .pp-with-icon helper, increase left/right padding to keep label centered */
+.pp-with-icon { padding-left: 18px; padding-right: 48px; }
+
+/* Small screen adjustments */
+@media (max-width: 576px) {
+  .shop-now-btn, .shop-now-btn-custom, .pp-btn { padding: 8px 18px; font-size: 0.95rem; min-width: auto; }
+  .pp-with-icon { padding-right: 44px; }
+  .shop-now-btn .shop-now-icon, .shop-now-btn-custom .shop-now-icon, .pp-btn .btn-icon--abs { right: 12px; }
+}
+
+
+
+/* Categories */
+.categories-section { padding-top: 6rem; padding-bottom: 3.5rem; }
+.category-card { border-radius: 16px; overflow: hidden; }
+.category-title { color: #0b2240; }
+
+/* Ensure category card contents (title, description, button) are centered.
+   Some global or component styles can override Bootstrap's text-center; this
+   makes centering explicit and resilient. */
+.category-card .card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.category-card .category-title {
+  width: 100%;
+  margin: 0 0 0.75rem;
+}
+.category-btn { border-radius: 999px; }
+
+/* Featured section adjustments */
+.featured-section { padding: 3.5rem 0; }
+.product-card-wrapper { transform: translateY(0); opacity: 1; }
+
+/* Smaller gap under fixed navbar for anchors */
+:target { scroll-margin-top: 120px; }
+
+/* Responsive tweaks */
+
+
+/* Ensure carousel controls are visible on dark images */
+.carousel-control-prev-icon,
+.carousel-control-next-icon { filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6)); }

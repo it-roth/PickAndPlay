@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
-import { productService } from '../services/api';
+import { useParams, useLocation } from 'react-router-dom';
+import { Container, Row, Col, Form, Button, Card, Pagination } from 'react-bootstrap';
+import { productService } from '../lib/api';
 import ProductCard from '../components/ProductCard';
+import { useContext } from 'react';
+import { LocaleContext } from '../contexts/LocaleContext';
 
 function Shop() {
+  const { categoryName } = useParams();
+  const location = useLocation();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
@@ -13,13 +19,24 @@ function Shop() {
     minPrice: '',
     maxPrice: '',
     brand: '',
-    sortBy: 'name',
+    // default to newest so last/most-recent products show first
+    sortBy: 'newest',
   });
-  
+
+  const { t } = useContext(LocaleContext);
+
+  // Map URL category names to actual category values
+  const categoryMap = {
+    'electric': 'Electric Guitar',
+    'acoustic': 'Acoustic Guitar',
+    'bass': 'Bass Guitar',
+    'accessories': 'Accessories'
+  };
+
   // Get all available categories and brands from products
   const categories = [...new Set(products.map(p => p.category))];
   const brands = [...new Set(products.map(p => p.brand))];
-  
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -32,32 +49,49 @@ function Shop() {
         setIsLoading(false);
       }
     };
-    
+
     fetchProducts();
   }, []);
-  
+
+  // Set category filter based on URL parameter
+  useEffect(() => {
+    if (categoryName && categoryMap[categoryName]) {
+      setFilters(prev => ({
+        ...prev,
+        category: categoryMap[categoryName]
+      }));
+    } else {
+      // Clear category filter if no category in URL
+      setFilters(prev => ({
+        ...prev,
+        category: ''
+      }));
+    }
+  }, [categoryName, location.pathname]);
+
   useEffect(() => {
     // Apply filters whenever filters change
     applyFilters();
+    setCurrentPage(1);
   }, [filters, products]);
-  
+
   const applyFilters = () => {
     let result = [...products];
-    
+
     // Apply search filter
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
-      result = result.filter(product => 
-        product.name.toLowerCase().includes(searchTerm) || 
+      result = result.filter(product =>
+        product.name.toLowerCase().includes(searchTerm) ||
         product.description.toLowerCase().includes(searchTerm)
       );
     }
-    
+
     // Apply category filter
     if (filters.category) {
       result = result.filter(product => product.category === filters.category);
     }
-    
+
     // Apply price filters
     if (filters.minPrice) {
       result = result.filter(product => product.price >= parseFloat(filters.minPrice));
@@ -65,14 +99,30 @@ function Shop() {
     if (filters.maxPrice) {
       result = result.filter(product => product.price <= parseFloat(filters.maxPrice));
     }
-    
+
     // Apply brand filter
     if (filters.brand) {
       result = result.filter(product => product.brand === filters.brand);
     }
-    
+
     // Apply sorting
     switch (filters.sortBy) {
+      case 'newest':
+        // sort by numeric id or fallback to string _id; newest (largest) first
+        result.sort((a, b) => {
+          const ai = Number(a.id ?? a._id ?? 0);
+          const bi = Number(b.id ?? b._id ?? 0);
+          return bi - ai;
+        });
+        break;
+      case 'oldest':
+        // oldest first
+        result.sort((a, b) => {
+          const ai = Number(a.id ?? a._id ?? 0);
+          const bi = Number(b.id ?? b._id ?? 0);
+          return ai - bi;
+        });
+        break;
       case 'priceAsc':
         result.sort((a, b) => a.price - b.price);
         break;
@@ -83,10 +133,24 @@ function Shop() {
       default:
         result.sort((a, b) => a.name.localeCompare(b.name));
     }
-    
+
     setFilteredProducts(result);
   };
-  
+
+  // Pagination
+  const itemsPerPage = 9;
+  const totalItems = filteredProducts.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(totalItems, currentPage * itemsPerPage);
+  const pagedProducts = filteredProducts.slice(startIndex, endIndex);
+
+  const goToPage = (page) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({
@@ -94,7 +158,7 @@ function Shop() {
       [name]: value
     }));
   };
-  
+
   const resetFilters = () => {
     setFilters({
       search: '',
@@ -106,46 +170,67 @@ function Shop() {
     });
   };
 
+  const getCategoryTitle = () => {
+    if (categoryName && categoryMap[categoryName]) {
+      return categoryMap[categoryName] + 's';
+    }
+    return 'Guitar Shop';
+  };
+
   return (
-    <Container className="py-5">
-      <h1 className="mb-4">Guitar Shop</h1>
-      
+    <Container className="py-3" style={{ paddingTop: '20px' }}>
+      <div className="mb-4">
+        <h1>{getCategoryTitle()}</h1>
+        {categoryName && (
+          <nav aria-label="breadcrumb">
+            <ol className="breadcrumb">
+              <li className="breadcrumb-item">
+                <a href="/shop">Shop</a>
+              </li>
+              <li className="breadcrumb-item active" aria-current="page">
+                {categoryMap[categoryName]}
+              </li>
+            </ol>
+          </nav>
+        )}
+      </div>
+
       <Row>
         {/* Filters sidebar */}
         <Col md={3}>
           <Card className="mb-4">
             <Card.Header>
-              <h5 className="mb-0">Filters</h5>
+              <h5 className="mb-0">{t('filters_title')}</h5>
             </Card.Header>
             <Card.Body>
               <Form>
                 <Form.Group className="mb-3">
-                  <Form.Label>Search</Form.Label>
+                  <Form.Label>{t('search_label')}</Form.Label>
                   <Form.Control
                     type="text"
                     name="search"
                     value={filters.search}
                     onChange={handleFilterChange}
-                    placeholder="Search guitars..."
+                    placeholder={t('search_placeholder')}
                   />
                 </Form.Group>
-                
+
                 <Form.Group className="mb-3">
-                  <Form.Label>Category</Form.Label>
+                  <Form.Label>{t('category')}</Form.Label>
                   <Form.Select
                     name="category"
                     value={filters.category}
                     onChange={handleFilterChange}
                   >
-                    <option value="">All Categories</option>
+                    <option value="">{t('all_categories')}</option>
                     {categories.map(category => (
                       <option key={category} value={category}>{category}</option>
                     ))}
                   </Form.Select>
                 </Form.Group>
-                
+
                 <Form.Group className="mb-3">
-                  <Form.Label>Price Range</Form.Label>
+                  <Form.Label>{t('price_range')}</Form.Label>
                   <Row>
                     <Col>
                       <Form.Control
@@ -153,7 +238,7 @@ function Shop() {
                         name="minPrice"
                         value={filters.minPrice}
                         onChange={handleFilterChange}
-                        placeholder="Min"
+                        placeholder={t('min')}
                         min="0"
                       />
                     </Col>
@@ -163,80 +248,99 @@ function Shop() {
                         name="maxPrice"
                         value={filters.maxPrice}
                         onChange={handleFilterChange}
-                        placeholder="Max"
+                        placeholder={t('max')}
                         min="0"
                       />
                     </Col>
                   </Row>
                 </Form.Group>
-                
+
                 <Form.Group className="mb-3">
-                  <Form.Label>Brand</Form.Label>
+                  <Form.Label>{t('brand')}</Form.Label>
                   <Form.Select
                     name="brand"
                     value={filters.brand}
                     onChange={handleFilterChange}
                   >
-                    <option value="">All Brands</option>
+                    <option value="">{t('all_brands')}</option>
                     {brands.map(brand => (
                       <option key={brand} value={brand}>{brand}</option>
                     ))}
                   </Form.Select>
                 </Form.Group>
-                
+
                 <Form.Group className="mb-3">
-                  <Form.Label>Sort By</Form.Label>
+                  <Form.Label>{t('sort_by')}</Form.Label>
                   <Form.Select
                     name="sortBy"
                     value={filters.sortBy}
                     onChange={handleFilterChange}
                   >
-                    <option value="name">Name (A-Z)</option>
-                    <option value="priceAsc">Price (Low to High)</option>
-                    <option value="priceDesc">Price (High to Low)</option>
+                    <option value="name">{t('sort_name')}</option>
+                    <option value="priceAsc">{t('sort_price_asc')}</option>
+                    <option value="priceDesc">{t('sort_price_desc')}</option>
                   </Form.Select>
                 </Form.Group>
-                
-                <Button 
-                  variant="secondary" 
-                  type="button" 
-                  className="w-100"
+
+                <Button
+                  className="auth-link-cta w-100 text-center"
+                  type="button"
                   onClick={resetFilters}
                 >
-                  Reset Filters
+                  {t('reset_filters')}
                 </Button>
               </Form>
             </Card.Body>
           </Card>
         </Col>
-        
+
         {/* Products grid */}
         <Col md={9}>
           {isLoading ? (
             <div className="text-center py-5">
-              <p>Loading products...</p>
+              <p>{t('loading_products')}</p>
             </div>
           ) : (
             <>
               <div className="mb-3">
                 <p className="mb-0">
-                  Showing {filteredProducts.length} of {products.length} products
+                  Showing {startIndex + 1} - {endIndex} of {totalItems} products
                 </p>
               </div>
-              
-              {filteredProducts.length === 0 ? (
+
+              {pagedProducts.length === 0 ? (
                 <div className="text-center py-5">
-                  <p>No products found matching your criteria.</p>
-                  <Button onClick={resetFilters} variant="outline-primary">Reset Filters</Button>
+                  <p>{t('no_products')}</p>
+                  <Button onClick={resetFilters} className="auth-link-cta">{t('reset_filters')}</Button>
                 </div>
               ) : (
-                <Row>
-                  {filteredProducts.map(product => (
-                    <Col key={product.id} lg={4} md={6} sm={12} className="mb-4">
-                      <ProductCard product={product} />
-                    </Col>
-                  ))}
-                </Row>
+                <>
+                  <Row>
+                    {pagedProducts.map(product => (
+                      <Col key={String(product.id ?? product._id ?? product._doc?._id)} lg={4} md={6} xs={6} className="mb-4">
+                        <ProductCard product={product} />
+                      </Col>
+                    ))}
+                  </Row>
+
+                  {/* Pagination controls */}
+                  {totalPages > 1 && (
+                    <div className="d-flex justify-content-center mt-3">
+                      <Pagination>
+                        <Pagination.Prev onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} />
+                        {Array.from({ length: totalPages }).map((_, idx) => {
+                          const page = idx + 1;
+                          return (
+                            <Pagination.Item key={page} active={page === currentPage} onClick={() => goToPage(page)}>
+                              {page}
+                            </Pagination.Item>
+                          );
+                        })}
+                        <Pagination.Next onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} />
+                      </Pagination>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
